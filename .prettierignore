@@ -1,0 +1,11 @@
+.changeset
+.claude
+.DS_Store
+.turbo
+*-junit.xml
+*.log
+*.tsbuildinfo
+coverage
+dist
+node_modules
+pnpm-lock.yaml

@@ -1,0 +1,50 @@
+{
+  "name": "access-tokens-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Personal access token library and tools",
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/loancrate/access-tokens.git"
+  },
+  "license": "ISC",
+  "author": "Trevor Robinson",
+  "scripts": {
+    "build": "turbo run build",
+    "changeset": "changeset",
+    "clean": "turbo run clean",
+    "dev": "turbo run dev",
+    "format": "prettier --write .",
+    "format:check": "prettier --check .",
+    "lint": "turbo run lint",
+    "release": "changeset publish",
+    "release:local": "pnpm verify && pnpm release",
+    "test": "turbo run test",
+    "test-int": "scripts/start-localstack.sh && turbo run test-int",
+    "test:coverage": "pnpm test && pnpm test-int && scripts/merge-coverage.sh",
+    "typecheck": "turbo run typecheck",
+    "verify": "turbo run build lint typecheck && pnpm test:coverage && pnpm format:check",
+    "version-packages": "changeset version"
+  },
+  "devDependencies": {
+    "@changesets/cli": "^2.29.7",
+    "@types/node": "^24.9.2",
+    "@typescript-eslint/eslint-plugin": "^8.46.2",
+    "@typescript-eslint/parser": "^8.46.2",
+    "cpy-cli": "^6.0.0",
+    "eslint": "^9.38.0",
+    "eslint-import-resolver-typescript": "^4.4.4",
+    "eslint-plugin-import": "^2.32.0",
+    "jest": "^30.2.0",
+    "nyc": "^17.1.0",
+    "prettier": "^3.6.2",
+    "turbo": "^2.6.0",
+    "typescript": "^5.9.3",
+    "typescript-eslint": "^8.46.2"
+  },
+  "engines": {
+    "node": ">=20.0.0",
+    "pnpm": ">=10.0.0"
+  },
+  "packageManager": "pnpm@10.20.0"
+}

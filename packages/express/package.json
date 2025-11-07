@@ -1,0 +1,70 @@
+{
+  "name": "@access-tokens/express",
+  "version": "1.0.0",
+  "description": "Express routes and middleware for personal access token authentication",
+  "keywords": [
+    "dynamodb",
+    "personal-access-token",
+    "pat",
+    "authentication",
+    "express",
+    "middleware",
+    "jwt"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/loancrate/access-tokens.git",
+    "directory": "packages/express"
+  },
+  "license": "ISC",
+  "author": "Trevor Robinson",
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "tsc --build tsconfig.build.json",
+    "clean": "rm -rf dist *.tsbuildinfo coverage *-junit.xml",
+    "genkey": "tsx src/tools/genkey.ts",
+    "lint": "eslint src",
+    "prepack": "cpy ../../LICENSE .",
+    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@access-tokens/core": "workspace:*",
+    "catch-unknown": "^2.0.0",
+    "express-async-handler": "^1.2.0",
+    "http-errors": "^2.0.0",
+    "id62": "^2.0.0",
+    "jose": "^6.1.0",
+    "pino": "^10.1.0",
+    "zod": "^4.1.12"
+  },
+  "devDependencies": {
+    "@access-tokens/jest-config": "workspace:*",
+    "@jest/globals": "^30.2.0",
+    "@types/express": "^5.0.5",
+    "@types/http-errors": "^2.0.5",
+    "@types/jest": "^30.0.0",
+    "@types/node": "^24.9.2",
+    "@types/supertest": "^6.0.3",
+    "eslint": "^9.38.0",
+    "express": "^5.1.0",
+    "jest": "^30.2.0",
+    "jest-junit": "^16.0.0",
+    "supertest": "^7.1.4",
+    "ts-jest": "^29.4.5",
+    "tsx": "^4.20.6",
+    "typescript": "^5.9.3"
+  },
+  "peerDependencies": {
+    "express": "^4.18.0 || ^5.0.0"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}

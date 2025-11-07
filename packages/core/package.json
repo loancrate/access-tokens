@@ -1,0 +1,60 @@
+{
+  "name": "@access-tokens/core",
+  "version": "1.0.0",
+  "description": "Personal access token library for secure token generation, verification, and lifecycle management",
+  "keywords": [
+    "dynamodb",
+    "personal-access-token",
+    "pat",
+    "authentication",
+    "aws",
+    "token-management"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/loancrate/access-tokens.git",
+    "directory": "packages/core"
+  },
+  "license": "ISC",
+  "author": "Trevor Robinson",
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "tsc --build tsconfig.build.json",
+    "clean": "rm -rf dist *.tsbuildinfo coverage *-junit.xml",
+    "lint": "eslint src",
+    "prepack": "cpy ../../LICENSE .",
+    "test": "jest",
+    "test-int": "jest --config=jest-int.config.js",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@aws-sdk/client-dynamodb": "^3.921.0",
+    "@aws-sdk/lib-dynamodb": "^3.921.0",
+    "@phc/format": "^1.0.0",
+    "catch-unknown": "^2.0.0",
+    "id62": "^2.0.0",
+    "pino": "^10.1.0",
+    "zod": "^4.1.12"
+  },
+  "devDependencies": {
+    "@access-tokens/jest-config": "workspace:*",
+    "@types/jest": "^30.0.0",
+    "@types/node": "^24.9.2",
+    "@types/phc__format": "^1.0.1",
+    "aws-sdk-client-mock": "^4.1.0",
+    "eslint": "^9.38.0",
+    "jest": "^30.2.0",
+    "jest-junit": "^16.0.0",
+    "ts-jest": "^29.4.5",
+    "typescript": "^5.9.3"
+  },
+  "engines": {
+    "node": ">=20.0.0"
+  }
+}

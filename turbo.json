@@ -1,0 +1,48 @@
+{
+  "$schema": "https://turbo.build/schema.json",
+  "globalDependencies": ["**/.env.*local"],
+  "tasks": {
+    "build": {
+      "dependsOn": ["^build"],
+      "outputs": ["dist/**", ".tsbuildinfo"],
+      "inputs": ["src/**", "package.json", "tsconfig.json"]
+    },
+    "test": {
+      "dependsOn": ["build"],
+      "outputs": ["coverage/**", "*-junit.xml"],
+      "inputs": ["src/**", "jest.config.ts"]
+    },
+    "test-int": {
+      "dependsOn": ["build"],
+      "outputs": ["coverage/**", "*-int-junit.xml"],
+      "inputs": ["src/**", "jest-int.config.ts"],
+      "cache": false
+    },
+    "lint": {
+      "outputs": [],
+      "inputs": [
+        "src/**",
+        "eslint.config.cjs",
+        "../../eslint-config-base.cjs",
+        "tsconfig.json"
+      ]
+    },
+    "format": {
+      "outputs": [],
+      "inputs": ["src/**", "*.json", "*.md"]
+    },
+    "typecheck": {
+      "dependsOn": ["^build"],
+      "outputs": [],
+      "inputs": ["src/**", "tsconfig.json"]
+    },
+    "clean": {
+      "cache": false
+    },
+    "dev": {
+      "dependsOn": ["^build"],
+      "cache": false,
+      "persistent": true
+    }
+  }
+}
