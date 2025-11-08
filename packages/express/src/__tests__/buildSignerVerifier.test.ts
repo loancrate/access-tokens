@@ -1,8 +1,8 @@
 import { describe, expect, it } from "@jest/globals";
 import { decodeJwt } from "jose";
 
-import { buildSignerVerifier, JwtConfig } from "../buildSignerVerifier.js";
-import { generateKeySet } from "../generateKeySet.js";
+import { buildSignerVerifier, JwtConfig } from "../buildSignerVerifier";
+import { generateKeySet } from "../generateKeySet";
 
 describe("buildSignerVerifier", () => {
   it("should build signer and verifier with valid EdDSA config", async () => {

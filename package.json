@@ -20,10 +20,11 @@
     "release": "changeset publish",
     "release:local": "pnpm verify && pnpm release",
     "test": "turbo run test",
+    "test-smoke": "turbo run test-smoke",
     "test-int": "scripts/start-localstack.sh && turbo run test-int",
     "test:coverage": "pnpm test && pnpm test-int && scripts/merge-coverage.sh",
     "typecheck": "turbo run typecheck",
-    "verify": "turbo run build lint typecheck && pnpm test:coverage && pnpm format:check",
+    "verify": "turbo run build lint typecheck test-smoke && pnpm test:coverage && pnpm format:check",
     "version-packages": "changeset version"
   },
   "devDependencies": {

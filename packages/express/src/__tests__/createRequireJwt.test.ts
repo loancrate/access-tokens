@@ -5,12 +5,12 @@ import express from "express";
 import { errors } from "jose";
 import request from "supertest";
 
-import { buildSignerVerifier } from "../buildSignerVerifier.js";
-import { createRequireJwt, ExtendedJwtPayload } from "../createRequireJwt.js";
-import { generateKeySet } from "../generateKeySet.js";
+import { buildSignerVerifier } from "../buildSignerVerifier";
+import { createRequireJwt, ExtendedJwtPayload } from "../createRequireJwt";
+import { generateKeySet } from "../generateKeySet";
 
-import { httpErrorMiddleware } from "./httpErrorMiddleware.js";
-import { createMockSignerVerifier, setupMockLogger } from "./testMocks.js";
+import { httpErrorMiddleware } from "./httpErrorMiddleware";
+import { createMockSignerVerifier, setupMockLogger } from "./testMocks";
 
 describe("createRequireJwt", () => {
   let app: express.Application;

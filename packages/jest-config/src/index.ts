@@ -2,7 +2,7 @@ import type { Config } from "jest";
 
 interface MakeJestConfigOptions {
   esm?: boolean;
-  testSuiteType?: "unit" | "int";
+  testSuiteType?: "unit" | "int" | "smoke";
 }
 
 export function makeJestConfig(options: MakeJestConfigOptions = {}): Config {
@@ -16,11 +16,16 @@ export function makeJestConfig(options: MakeJestConfigOptions = {}): Config {
       testMatch = ["**/__tests__/**/*.int.test.ts"];
       outputFile = "int-junit.xml";
       break;
+    case "smoke":
+      testMatch = ["**/__tests__/**/*.smoke.test.ts"];
+      outputFile = "smoke-junit.xml";
+      break;
     case "unit":
     default:
       testMatch = [
         "**/__tests__/**/*.test.ts",
         "!**/__tests__/**/*.int.test.ts",
+        "!**/__tests__/**/*.smoke.test.ts",
       ];
       outputFile = "unit-junit.xml";
   }
