@@ -47,6 +47,9 @@ jobs:
       - name: Build packages
         run: pnpm build
 
+      - name: Run smoke tests (on built artifacts)
+        run: pnpm test-smoke
+
       - name: Run format check
         run: pnpm format:check
 

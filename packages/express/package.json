@@ -26,12 +26,13 @@
   "main": "./dist/index.js",
   "types": "./dist/index.d.ts",
   "scripts": {
-    "build": "tsc --build tsconfig.build.json",
+    "build": "node esbuild.config.mjs && tsc --project tsconfig.build.json --emitDeclarationOnly",
     "clean": "rm -rf dist *.tsbuildinfo coverage *-junit.xml",
     "genkey": "tsx src/tools/genkey.ts",
     "lint": "eslint src",
     "prepack": "cpy ../../LICENSE .",
     "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
+    "test-smoke": "jest --config jest-smoke.config.js",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
@@ -52,6 +53,7 @@
     "@types/jest": "^30.0.0",
     "@types/node": "^24.9.2",
     "@types/supertest": "^6.0.3",
+    "esbuild": "^0.25.12",
     "eslint": "^9.38.0",
     "express": "^5.1.0",
     "jest": "^30.2.0",

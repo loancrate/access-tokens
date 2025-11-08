@@ -1,7 +1,7 @@
 import { describe, expect, it, jest } from "@jest/globals";
 
-import type { KeySet } from "../../buildSignerVerifier.js";
-import type { AlgorithmType } from "../../generateKeySet.js";
+import type { KeySet } from "../../buildSignerVerifier";
+import type { AlgorithmType } from "../../generateKeySet";
 
 const mockGenerateKeySet =
   jest.fn<(kid: string, algorithm?: AlgorithmType) => Promise<KeySet>>();
@@ -48,7 +48,7 @@ describe("genkey tool", () => {
       .mockImplementation(() => undefined as never);
 
     // Import and execute the genkey module
-    await import("../genkey.js");
+    await import("../genkey");
 
     // Wait for async operations to complete
     await new Promise((resolve) => setImmediate(resolve));
@@ -77,7 +77,7 @@ describe("genkey tool", () => {
       .mockImplementation(() => undefined as never);
 
     // Use dynamic import with timestamp to force re-evaluation
-    const modulePath = `../genkey.js?t=${Date.now()}`;
+    const modulePath = `../genkey?t=${Date.now()}`;
     await import(modulePath);
 
     // Wait for async operations to complete

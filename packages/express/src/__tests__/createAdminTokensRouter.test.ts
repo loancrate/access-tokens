@@ -5,16 +5,16 @@ import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import express from "express";
 import request from "supertest";
 
-import { createAdminTokensRouter } from "../createAdminTokensRouter.js";
+import { createAdminTokensRouter } from "../createAdminTokensRouter";
 
-import { httpErrorMiddleware } from "./httpErrorMiddleware.js";
+import { httpErrorMiddleware } from "./httpErrorMiddleware";
 import {
   createMockPat,
   createMockSignerVerifier,
   setupMockLogger,
   verifiedAdminJwt,
   verifiedJwt,
-} from "./testMocks.js";
+} from "./testMocks";
 
 describe("createAdminTokensRouter", () => {
   let app: express.Application;

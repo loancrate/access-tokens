@@ -10,7 +10,7 @@ const importPlugin = require("eslint-plugin-import");
 module.exports = function createConfig(tsconfigRootDir) {
   return [
     {
-      ignores: ["coverage/**", "dist/**", "node_modules/**"],
+      ignores: ["coverage/**", "dist/**", "node_modules/**", "*.cjs"],
     },
     ...tseslint.configs.recommendedTypeChecked,
     {

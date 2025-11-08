@@ -2,10 +2,10 @@ import { beforeEach, describe, expect, it } from "@jest/globals";
 import express from "express";
 import request from "supertest";
 
-import { createRequireAdmin } from "../createRequireAdmin.js";
+import { createRequireAdmin } from "../createRequireAdmin";
 
-import { httpErrorMiddleware } from "./httpErrorMiddleware.js";
-import { setupMockLogger } from "./testMocks.js";
+import { httpErrorMiddleware } from "./httpErrorMiddleware";
+import { setupMockLogger } from "./testMocks";
 
 describe("createRequireAdmin", () => {
   let app: express.Application;

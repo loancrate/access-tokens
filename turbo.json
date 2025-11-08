@@ -7,18 +7,29 @@
       "outputs": ["dist/**", ".tsbuildinfo"],
       "inputs": ["src/**", "package.json", "tsconfig.json"]
     },
-    "test": {
+    "typecheck": {
       "dependsOn": ["build"],
+      "outputs": [],
+      "inputs": ["src/**", "package.json", "tsconfig.json"]
+    },
+    "test": {
+      "dependsOn": ["^build"],
       "outputs": ["coverage/**", "*-junit.xml"],
       "inputs": ["src/**", "jest.config.ts"]
     },
     "test-int": {
-      "dependsOn": ["build"],
+      "dependsOn": ["^build"],
       "outputs": ["coverage/**", "*-int-junit.xml"],
       "inputs": ["src/**", "jest-int.config.ts"],
       "cache": false
     },
+    "test-smoke": {
+      "dependsOn": ["build"],
+      "outputs": ["*-smoke-junit.xml"],
+      "cache": false
+    },
     "lint": {
+      "dependsOn": ["build"],
       "outputs": [],
       "inputs": [
         "src/**",
@@ -30,11 +41,6 @@
     "format": {
       "outputs": [],
       "inputs": ["src/**", "*.json", "*.md"]
-    },
-    "typecheck": {
-      "dependsOn": ["^build"],
-      "outputs": [],
-      "inputs": ["src/**", "tsconfig.json"]
     },
     "clean": {
       "cache": false

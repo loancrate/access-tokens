@@ -5,8 +5,8 @@ import { Logger } from "pino";
 
 import { DynamoDBPat } from "@access-tokens/core";
 
-import { buildSignerVerifier } from "../buildSignerVerifier.js";
-import { ExtendedJwtPayload } from "../createRequireJwt.js";
+import { buildSignerVerifier } from "../buildSignerVerifier";
+import { ExtendedJwtPayload } from "../createRequireJwt";
 
 export const verifiedJwt: JWTVerifyResult<ExtendedJwtPayload> = {
   payload: { sub: "test", owner: "test", admin: false },

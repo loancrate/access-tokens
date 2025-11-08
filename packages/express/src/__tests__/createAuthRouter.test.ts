@@ -5,14 +5,14 @@ import express from "express";
 import { UnsecuredJWT } from "jose";
 import request from "supertest";
 
-import { createAuthRouter } from "../createAuthRouter.js";
+import { createAuthRouter } from "../createAuthRouter";
 
-import { httpErrorMiddleware } from "./httpErrorMiddleware.js";
+import { httpErrorMiddleware } from "./httpErrorMiddleware";
 import {
   createMockPat,
   createMockSignerVerifier,
   setupMockLogger,
-} from "./testMocks.js";
+} from "./testMocks";
 
 describe("createAuthRouter", () => {
   let app: express.Application;
