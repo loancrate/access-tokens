@@ -1,6 +1,6 @@
 {
   "name": "@access-tokens/jest-config",
-  "version": "1.0.0",
+  "version": "1.0.1",
   "private": true,
   "description": "Base Jest configuration for access-tokens packages",
   "keywords": [
