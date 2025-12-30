@@ -1,4 +1,5 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
+/* eslint-disable @typescript-eslint/require-await */
 /* eslint-disable @typescript-eslint/unbound-method */
 
 import { beforeEach, describe, expect, it, jest } from "@jest/globals";
@@ -68,12 +69,12 @@ describe("createAdminTokensRouter", () => {
       mockSignerVerifier.verify.mockResolvedValue(verifiedAdminJwt);
       mockPat.list.mockReturnValue(
         (async function* () {
-          yield await Promise.resolve({
+          yield {
             tokenId: "token1",
             owner: "user1",
             isAdmin: false,
             createdAt: Date.now(),
-          });
+          };
         })(),
       );
 
@@ -109,6 +110,176 @@ describe("createAdminTokensRouter", () => {
         afterTokenId: "token-1",
         limit: 50,
       });
+    });
+
+    it("should parse boolean query params with 'true' and '1'", async () => {
+      mockSignerVerifier.verify.mockResolvedValue(verifiedAdminJwt);
+      mockPat.list.mockReturnValue((async function* () {})());
+
+      await request(app)
+        .get("/admin/tokens?includeSecretPhc=true")
+        .set("Authorization", "Bearer admin-jwt");
+      expect(mockPat.list).toHaveBeenCalledWith(
+        expect.objectContaining({ includeSecretPhc: true }),
+      );
+
+      jest.clearAllMocks();
+      mockPat.list.mockReturnValue((async function* () {})());
+
+      await request(app)
+        .get("/admin/tokens?includeSecretPhc=1")
+        .set("Authorization", "Bearer admin-jwt");
+      expect(mockPat.list).toHaveBeenCalledWith(
+        expect.objectContaining({ includeSecretPhc: true }),
+      );
+    });
+
+    it("should parse boolean query params with 'false' and '0'", async () => {
+      mockSignerVerifier.verify.mockResolvedValue(verifiedAdminJwt);
+      mockPat.list.mockReturnValue((async function* () {})());
+
+      await request(app)
+        .get("/admin/tokens?includeSecretPhc=false")
+        .set("Authorization", "Bearer admin-jwt");
+      expect(mockPat.list).toHaveBeenCalledWith(
+        expect.objectContaining({ includeSecretPhc: false }),
+      );
+
+      jest.clearAllMocks();
+      mockPat.list.mockReturnValue((async function* () {})());
+
+      await request(app)
+        .get("/admin/tokens?includeSecretPhc=0")
+        .set("Authorization", "Bearer admin-jwt");
+      expect(mockPat.list).toHaveBeenCalledWith(
+        expect.objectContaining({ includeSecretPhc: false }),
+      );
+    });
+
+    it("should handle hasRole query parameter", async () => {
+      mockSignerVerifier.verify.mockResolvedValue(verifiedAdminJwt);
+      mockPat.list.mockReturnValue((async function* () {})());
+
+      await request(app)
+        .get("/admin/tokens?hasRole=admin")
+        .set("Authorization", "Bearer admin-jwt");
+      expect(mockPat.list).toHaveBeenCalledWith(
+        expect.objectContaining({ hasRole: "admin" }),
+      );
+    });
+
+    it("should filter out revoked tokens by default", async () => {
+      mockSignerVerifier.verify.mockResolvedValue(verifiedAdminJwt);
+      mockPat.list.mockReturnValue(
+        (async function* () {
+          yield {
+            tokenId: "active",
+            owner: "user",
+            isAdmin: false,
+            createdAt: 1000,
+          };
+          yield {
+            tokenId: "revoked",
+            owner: "user",
+            isAdmin: false,
+            createdAt: 1000,
+            revokedAt: 2000,
+          };
+        })(),
+      );
+
+      const response = await request(app)
+        .get("/admin/tokens")
+        .set("Authorization", "Bearer admin-jwt");
+      expect(response.status).toBe(200);
+      expect(response.body.records).toHaveLength(1);
+      expect(response.body.records[0].tokenId).toBe("active");
+    });
+
+    it("should include revoked tokens when includeRevoked=true", async () => {
+      mockSignerVerifier.verify.mockResolvedValue(verifiedAdminJwt);
+      mockPat.list.mockReturnValue(
+        (async function* () {
+          yield {
+            tokenId: "active",
+            owner: "user",
+            isAdmin: false,
+            createdAt: 1000,
+          };
+          yield {
+            tokenId: "revoked",
+            owner: "user",
+            isAdmin: false,
+            createdAt: 1000,
+            revokedAt: 2000,
+          };
+        })(),
+      );
+
+      const response = await request(app)
+        .get("/admin/tokens?includeRevoked=true")
+        .set("Authorization", "Bearer admin-jwt");
+      expect(response.status).toBe(200);
+      expect(response.body.records).toHaveLength(2);
+    });
+
+    it("should filter out expired tokens by default", async () => {
+      mockSignerVerifier.verify.mockResolvedValue(verifiedAdminJwt);
+      const pastTime = Math.floor(Date.now() / 1000) - 3600;
+      const futureTime = Math.floor(Date.now() / 1000) + 3600;
+      mockPat.list.mockReturnValue(
+        (async function* () {
+          yield {
+            tokenId: "active",
+            owner: "user",
+            isAdmin: false,
+            createdAt: 1000,
+            expiresAt: futureTime,
+          };
+          yield {
+            tokenId: "expired",
+            owner: "user",
+            isAdmin: false,
+            createdAt: 1000,
+            expiresAt: pastTime,
+          };
+        })(),
+      );
+
+      const response = await request(app)
+        .get("/admin/tokens")
+        .set("Authorization", "Bearer admin-jwt");
+      expect(response.status).toBe(200);
+      expect(response.body.records).toHaveLength(1);
+      expect(response.body.records[0].tokenId).toBe("active");
+    });
+
+    it("should include expired tokens when includeExpired=true", async () => {
+      mockSignerVerifier.verify.mockResolvedValue(verifiedAdminJwt);
+      const pastTime = Math.floor(Date.now() / 1000) - 3600;
+      mockPat.list.mockReturnValue(
+        (async function* () {
+          yield {
+            tokenId: "active",
+            owner: "user",
+            isAdmin: false,
+            createdAt: 1000,
+          };
+          yield {
+            tokenId: "expired",
+            owner: "user",
+            isAdmin: false,
+            createdAt: 1000,
+            expiresAt: pastTime,
+          };
+        })(),
+      );
+
+      const response = await request(app)
+        .get("/admin/tokens?includeExpired=true")
+        .set("Authorization", "Bearer admin-jwt");
+      expect(response.status).toBe(200);
+      expect(response.body.records).toHaveLength(2);
     });
 
     it("should enforce maximum limit", async () => {
@@ -175,6 +346,92 @@ describe("createAdminTokensRouter", () => {
             "✖ Invalid input: expected string, received array\n  → at afterTokenId",
         },
       });
+    });
+  });
+
+  describe("POST /admin/tokens/batch", () => {
+    it("should return 401 if no JWT token", async () => {
+      const response = await request(app)
+        .post("/admin/tokens/batch")
+        .send({ tokenIds: ["token1"] });
+      expect(response.status).toBe(401);
+      expect(response.body).toStrictEqual({
+        error: { message: "Missing or invalid Authorization header" },
+      });
+    });
+
+    it("should return 403 if user is not admin", async () => {
+      mockSignerVerifier.verify.mockResolvedValue(verifiedJwt);
+
+      const response = await request(app)
+        .post("/admin/tokens/batch")
+        .set("Authorization", "Bearer valid-jwt")
+        .send({ tokenIds: ["token1"] });
+      expect(response.status).toBe(403);
+      expect(response.body).toStrictEqual({
+        error: { message: "Admin access required" },
+      });
+    });
+
+    it("should batch load tokens for admin user", async () => {
+      mockSignerVerifier.verify.mockResolvedValue(verifiedAdminJwt);
+      mockPat.batchLoad.mockResolvedValue({
+        found: [
+          {
+            tokenId: "token1",
+            owner: "user1",
+            isAdmin: false,
+            createdAt: 1000,
+          },
+        ],
+        notFound: ["token2"],
+      });
+
+      const response = await request(app)
+        .post("/admin/tokens/batch")
+        .set("Authorization", "Bearer admin-jwt")
+        .send({ tokenIds: ["token1", "token2"] });
+      expect(response.status).toBe(200);
+      expect(response.body).toStrictEqual({
+        found: [
+          {
+            tokenId: "token1",
+            owner: "user1",
+            isAdmin: false,
+            createdAt: 1000,
+          },
+        ],
+        notFound: ["token2"],
+      });
+      expect(mockPat.batchLoad).toHaveBeenCalledWith(
+        new Set(["token1", "token2"]),
+        { includeSecretPhc: false },
+      );
+    });
+
+    it("should handle includeSecretPhc option", async () => {
+      mockSignerVerifier.verify.mockResolvedValue(verifiedAdminJwt);
+      mockPat.batchLoad.mockResolvedValue({ found: [], notFound: [] });
+
+      await request(app)
+        .post("/admin/tokens/batch")
+        .set("Authorization", "Bearer admin-jwt")
+        .send({ tokenIds: ["token1"], includeSecretPhc: true });
+      expect(mockPat.batchLoad).toHaveBeenCalledWith(new Set(["token1"]), {
+        includeSecretPhc: true,
+      });
+    });
+
+    it("should return 400 if invalid request body", async () => {
+      mockSignerVerifier.verify.mockResolvedValue(verifiedAdminJwt);
+
+      const response = await request(app)
+        .post("/admin/tokens/batch")
+        .set("Authorization", "Bearer admin-jwt")
+        .send({ invalid: "field" });
+      expect(response.status).toBe(400);
+      expect(response.body).toHaveProperty("error");
+      expect(response.body.error.message).toBe("Invalid request body");
     });
   });
 
@@ -438,6 +695,59 @@ describe("createAdminTokensRouter", () => {
         .send(updates);
       expect(response.status).toBe(204);
       expect(mockPat.update).toHaveBeenCalledWith("test-token-id", updates);
+    });
+
+    it("should update with roles array replacement", async () => {
+      mockSignerVerifier.verify.mockResolvedValue(verifiedAdminJwt);
+      mockPat.update.mockResolvedValue();
+
+      const response = await request(app)
+        .patch("/admin/tokens/test-token-id")
+        .set("Authorization", "Bearer admin-jwt")
+        .send({ roles: ["admin", "reader"] });
+      expect(response.status).toBe(204);
+      expect(mockPat.update).toHaveBeenCalledWith("test-token-id", {
+        roles: ["admin", "reader"],
+      });
+    });
+
+    it("should update with roles add operation", async () => {
+      mockSignerVerifier.verify.mockResolvedValue(verifiedAdminJwt);
+      mockPat.update.mockResolvedValue();
+
+      const response = await request(app)
+        .patch("/admin/tokens/test-token-id")
+        .set("Authorization", "Bearer admin-jwt")
+        .send({ roles: { add: ["admin"] } });
+      expect(response.status).toBe(204);
+      expect(mockPat.update).toHaveBeenCalledWith("test-token-id", {
+        roles: { add: ["admin"] },
+      });
+    });
+
+    it("should update with roles remove operation", async () => {
+      mockSignerVerifier.verify.mockResolvedValue(verifiedAdminJwt);
+      mockPat.update.mockResolvedValue();
+
+      const response = await request(app)
+        .patch("/admin/tokens/test-token-id")
+        .set("Authorization", "Bearer admin-jwt")
+        .send({ roles: { remove: ["guest"] } });
+      expect(response.status).toBe(204);
+      expect(mockPat.update).toHaveBeenCalledWith("test-token-id", {
+        roles: { remove: ["guest"] },
+      });
+    });
+
+    it("should reject roles with both add and remove", async () => {
+      mockSignerVerifier.verify.mockResolvedValue(verifiedAdminJwt);
+
+      const response = await request(app)
+        .patch("/admin/tokens/test-token-id")
+        .set("Authorization", "Bearer admin-jwt")
+        .send({ roles: { add: ["admin"], remove: ["guest"] } });
+      expect(response.status).toBe(400);
+      expect(response.body.error.message).toBe("Invalid request body");
     });
 
     it("should return 400 if invalid request body", async () => {

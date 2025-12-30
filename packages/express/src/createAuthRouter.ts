@@ -106,6 +106,7 @@ export function createAuthRouter({
         sub: record.tokenId,
         owner: record.owner,
         admin: record.isAdmin,
+        roles: record.roles ?? [],
       });
 
       const { exp, iat } = decodeJwt(access_token);

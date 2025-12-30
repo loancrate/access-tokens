@@ -103,25 +103,26 @@ describe("CLI", () => {
       expect(exitCode).toBe(0);
       const output = streams.getStdout();
       expect(output).toMatchInlineSnapshot(`
-        "Usage: access-tokens-cli list [options]
+       "Usage: access-tokens-cli list [options]
 
-        List tokens
+       List tokens
 
-        Options:
-          --include-revoked      Include revoked tokens
-          --include-expired      Include expired tokens
-          --include-secret-phc   Include secret PHC hashes
-          --endpoint <name>      Named endpoint from config
-          --url <url>            Direct endpoint URL
-          --admin-token <token>  Admin token (required with --url)
-          --auth-path <path>     Auth path (default: /auth)
-          --admin-path <path>    Admin path (default: /admin)
-          --config-dir <path>    Config directory (default: ~/.access-tokens-cli)
-          --verbose              Verbose output
-          --quiet                Minimal output
-          --json                 Output as JSON
-          -h, --help             display help for command
-        "
+       Options:
+         --include-revoked      Include revoked tokens
+         --include-expired      Include expired tokens
+         --include-secret-phc   Include secret PHC hashes
+         --has-role <role>      Filter tokens that have this role
+         --endpoint <name>      Named endpoint from config
+         --url <url>            Direct endpoint URL
+         --admin-token <token>  Admin token (required with --url)
+         --auth-path <path>     Auth path (default: /auth)
+         --admin-path <path>    Admin path (default: /admin)
+         --config-dir <path>    Config directory (default: ~/.access-tokens-cli)
+         --verbose              Verbose output
+         --quiet                Minimal output
+         --json                 Output as JSON
+         -h, --help             display help for command
+       "
       `);
     });
 
@@ -137,25 +138,26 @@ describe("CLI", () => {
       expect(exitCode).toBe(0);
       const output = streams.getStdout();
       expect(output).toMatchInlineSnapshot(`
-        "Usage: access-tokens-cli issue [options]
+       "Usage: access-tokens-cli issue [options]
 
-        Issue a new token
+       Issue a new token
 
-        Options:
-          --owner <email>        Token owner (usually email)
-          --admin                Make token an admin token
-          --expires-at <date>    Expiration date (ISO 8601 or Unix timestamp)
-          --endpoint <name>      Named endpoint from config
-          --url <url>            Direct endpoint URL
-          --admin-token <token>  Admin token (required with --url)
-          --auth-path <path>     Auth path (default: /auth)
-          --admin-path <path>    Admin path (default: /admin)
-          --config-dir <path>    Config directory (default: ~/.access-tokens-cli)
-          --verbose              Verbose output
-          --quiet                Minimal output
-          --json                 Output as JSON
-          -h, --help             display help for command
-        "
+       Options:
+         --owner <email>        Token owner (usually email)
+         --admin                Make token an admin token
+         --roles <roles>        Comma-separated list of roles
+         --expires-at <date>    Expiration date (ISO 8601 or Unix timestamp)
+         --endpoint <name>      Named endpoint from config
+         --url <url>            Direct endpoint URL
+         --admin-token <token>  Admin token (required with --url)
+         --auth-path <path>     Auth path (default: /auth)
+         --admin-path <path>    Admin path (default: /admin)
+         --config-dir <path>    Config directory (default: ~/.access-tokens-cli)
+         --verbose              Verbose output
+         --quiet                Minimal output
+         --json                 Output as JSON
+         -h, --help             display help for command
+       "
       `);
     });
 
@@ -207,26 +209,30 @@ describe("CLI", () => {
       expect(exitCode).toBe(0);
       const output = streams.getStdout();
       expect(output).toMatchInlineSnapshot(`
-        "Usage: access-tokens-cli update [options]
+       "Usage: access-tokens-cli update [options]
 
-        Update token properties
+       Update token properties
 
-        Options:
-          --token-id <id>        Token ID
-          --owner <email>        Update owner
-          --admin <boolean>      Update admin status (true/false)
-          --secret-phc <phc>     Update secret PHC hash
-          --expires-at <date>    Update expiration (ISO 8601, Unix timestamp, or 'null')
-          --endpoint <name>      Named endpoint from config
-          --url <url>            Direct endpoint URL
-          --admin-token <token>  Admin token (required with --url)
-          --auth-path <path>     Auth path (default: /auth)
-          --admin-path <path>    Admin path (default: /admin)
-          --config-dir <path>    Config directory (default: ~/.access-tokens-cli)
-          --verbose              Verbose output
-          --quiet                Minimal output
-          -h, --help             display help for command
-        "
+       Options:
+         --token-id <id>         Token ID
+         --owner <email>         Update owner
+         --admin <boolean>       Update admin status (true/false)
+         --secret-phc <phc>      Update secret PHC hash
+         --roles <roles>         Replace all roles (comma-separated)
+         --add-roles <roles>     Add roles (comma-separated)
+         --remove-roles <roles>  Remove roles (comma-separated)
+         --expires-at <date>     Update expiration (ISO 8601, Unix timestamp, or
+                                 'null')
+         --endpoint <name>       Named endpoint from config
+         --url <url>             Direct endpoint URL
+         --admin-token <token>   Admin token (required with --url)
+         --auth-path <path>      Auth path (default: /auth)
+         --admin-path <path>     Admin path (default: /admin)
+         --config-dir <path>     Config directory (default: ~/.access-tokens-cli)
+         --verbose               Verbose output
+         --quiet                 Minimal output
+         -h, --help              display help for command
+       "
       `);
     });
 

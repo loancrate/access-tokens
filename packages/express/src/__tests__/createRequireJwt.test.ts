@@ -114,6 +114,7 @@ describe("createRequireJwt", () => {
         sub: "test-user",
         owner: "test-owner",
         admin: false,
+        roles: [],
       },
     });
     expect(signerVerifier.verify).toHaveBeenCalledWith("valid-token");
@@ -136,6 +137,7 @@ describe("createRequireJwt", () => {
         sub: "admin-user",
         owner: "admin-owner",
         admin: true,
+        roles: [],
       },
     });
   });

@@ -10,6 +10,7 @@ Core library for managing Personal Access Tokens (PATs) with secure scrypt-based
 - **Secure Token Generation**: Cryptographically secure random token generation
 - **Scrypt Hashing**: Industry-standard password hashing with PHC format
 - **Token Lifecycle Management**: Issue, verify, update, revoke, and restore tokens
+- **Role-Based Access Control**: Attach arbitrary roles to tokens with atomic add/remove operations
 - **DynamoDB Integration**: Low-cost, scalable storage with TTL expiration
 - **TypeScript**: Full type safety with comprehensive API types
 
@@ -100,6 +101,7 @@ Issues a new token.
 {
   owner: string;           // Token owner (e.g., email address)
   isAdmin: boolean;        // Whether token has admin privileges
+  roles?: string[];        // Array of role strings (optional, max 50 roles, 100 chars each)
   expiresAt?: number;      // Unix timestamp for expiration (optional)
   tokenId?: string;        // Pre-generated token ID (optional)
 }
@@ -145,13 +147,14 @@ Registers a token with a pre-generated ID and secret hash.
   secretPhc: string;       // PHC-formatted secret hash
   owner: string;           // Token owner
   isAdmin: boolean;        // Admin status
+  roles?: string[];        // Array of role strings (optional)
   expiresAt?: number;      // Expiration timestamp (optional)
 }
 ```
 
 #### `update(tokenId: string, updates): Promise<void>`
 
-Updates an existing token's properties.
+Updates an existing token's properties. Supports atomic role add/remove operations.
 
 **Parameters:**
 
@@ -162,15 +165,41 @@ Updates an existing token's properties.
 {
   owner?: string;          // New owner (optional)
   isAdmin?: boolean;       // New admin status (optional)
+  roles?: RolesUpdate;     // Roles update (optional, see below)
   secretPhc?: string;      // New secret hash (optional)
   expiresAt?: number | null; // New expiration or null to remove (optional)
 }
+
+// RolesUpdate can be:
+type RolesUpdate =
+  | string[]               // Replace all roles
+  | { add: string[] }      // Atomic add (cannot combine with remove)
+  | { remove: string[] }   // Atomic remove (cannot combine with add)
 ```
 
-**Example:**
+**Examples:**
 
 ```typescript
+// Update basic properties
 await pat.update("34NwRzvnBbgI3uedkrQ3Q", { owner: "newuser@example.com" });
+
+// Replace all roles
+await pat.update("34NwRzvnBbgI3uedkrQ3Q", { roles: ["reader", "writer"] });
+
+// Add roles atomically (idempotent)
+await pat.update("34NwRzvnBbgI3uedkrQ3Q", { roles: { add: ["admin"] } });
+
+// Remove roles atomically (idempotent)
+await pat.update("34NwRzvnBbgI3uedkrQ3Q", { roles: { remove: ["guest"] } });
+
+// Clear all roles
+await pat.update("34NwRzvnBbgI3uedkrQ3Q", { roles: [] });
+
+// Update multiple properties at once
+await pat.update("34NwRzvnBbgI3uedkrQ3Q", {
+  owner: "newuser@example.com",
+  roles: { add: ["admin"] },
+});
 ```
 
 #### `revoke(tokenId: string, options?: { expiresAt?: number }): Promise<void>`
@@ -210,6 +239,7 @@ Lists all tokens with optional filtering. Returns an async generator that yields
   afterTokenId?: string;         // Start after this token ID (pagination)
   limit?: number;                // Maximum tokens to return
   includeSecretPhc?: boolean;    // Include secret hashes (default: false)
+  hasRole?: string;              // Filter tokens that have this role (optional)
 }
 ```
 
@@ -279,6 +309,7 @@ Example: `pat_34NwRzvnBbgI3uedkrQ3Q.a8b9c0d1e2f3g4h5i6j7k8l9m0n1o2p3q4r5s6t7u8v9
 - `secretPhc`: PHC-formatted secret hash
 - `owner`: Token owner identifier
 - `isAdmin`: Boolean admin flag
+- `roles`: String Set of role names (optional, stored as DynamoDB SS type)
 - `isRevoked`: Boolean revoked status
 - `expiresAt`: Unix timestamp (optional, enables TTL)
 - `createdAt`: Unix timestamp

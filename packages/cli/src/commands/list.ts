@@ -14,6 +14,7 @@ export type ListOptions = {
   includeRevoked?: boolean;
   includeExpired?: boolean;
   includeSecretPhc?: boolean;
+  hasRole?: string;
   configDir?: string;
   json?: boolean;
   verbose?: boolean;
@@ -34,6 +35,7 @@ export async function listCommand(options: ListOptions): Promise<void> {
     includeRevoked: options.includeRevoked,
     includeExpired: options.includeExpired,
     includeSecretPhc: options.includeSecretPhc,
+    hasRole: options.hasRole,
   });
 
   if (options.json) {
@@ -54,6 +56,9 @@ function displayToken(token: TokenRecord, logger: Logger): void {
   logger.info(`Token ID: ${token.tokenId}`);
   logger.info(`  Owner: ${token.owner}`);
   logger.info(`  Admin: ${token.isAdmin}`);
+  if (token.roles?.length) {
+    logger.info(`  Roles: ${token.roles.join(", ")}`);
+  }
   logger.info(`  Created: ${formatDate(token.createdAt)}`);
   if (token.lastUsedAt) {
     logger.info(`  Last Used: ${formatDate(token.lastUsedAt)}`);

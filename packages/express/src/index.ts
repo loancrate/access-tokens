@@ -13,6 +13,7 @@ declare global {
         sub: string;
         owner: string;
         admin: boolean;
+        roles: string[];
       };
     }
   }
@@ -23,4 +24,5 @@ export * from "./createAdminTokensRouter";
 export * from "./createAuthRouter";
 export * from "./createRequireAdmin";
 export * from "./createRequireJwt";
+export * from "./createRequireRole";
 export * from "./generateKeySet";

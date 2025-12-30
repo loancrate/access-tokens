@@ -28,6 +28,7 @@ export const tokenDefinitionSchema = z.object({
   secretPhc: z.string().optional(),
   owner: z.string(),
   isAdmin: z.boolean().optional().default(false),
+  roles: z.array(z.string()).optional(),
   revoked: z.boolean().optional().default(false),
   expiresAt: dateSchema.optional(),
 });

@@ -86,7 +86,8 @@ export async function run(params: RunParameters): Promise<number> {
       .description("List tokens")
       .option("--include-revoked", "Include revoked tokens")
       .option("--include-expired", "Include expired tokens")
-      .option("--include-secret-phc", "Include secret PHC hashes"),
+      .option("--include-secret-phc", "Include secret PHC hashes")
+      .option("--has-role <role>", "Filter tokens that have this role"),
     [...endpointOptions(), ...outputOptions(), jsonOption()],
   ).action(async (options: Parameters<typeof listCommand>[0]) => {
     await listCommand(options);
@@ -98,6 +99,7 @@ export async function run(params: RunParameters): Promise<number> {
       .description("Issue a new token")
       .requiredOption("--owner <email>", "Token owner (usually email)")
       .option("--admin", "Make token an admin token")
+      .option("--roles <roles>", "Comma-separated list of roles")
       .option(
         "--expires-at <date>",
         "Expiration date (ISO 8601 or Unix timestamp)",
@@ -136,6 +138,9 @@ export async function run(params: RunParameters): Promise<number> {
         (val) => val === "true",
       )
       .option("--secret-phc <phc>", "Update secret PHC hash")
+      .option("--roles <roles>", "Replace all roles (comma-separated)")
+      .option("--add-roles <roles>", "Add roles (comma-separated)")
+      .option("--remove-roles <roles>", "Remove roles (comma-separated)")
       .option(
         "--expires-at <date>",
         "Update expiration (ISO 8601, Unix timestamp, or 'null')",

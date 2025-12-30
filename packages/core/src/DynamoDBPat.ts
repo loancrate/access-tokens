@@ -55,6 +55,7 @@ export type ListOptions = {
   batchLimit?: number;
   afterTokenId?: string;
   includeSecretPhc?: boolean;
+  hasRole?: string;
 };
 
 export type BatchLoadOptions = {
@@ -81,6 +82,7 @@ export type RegisterConfig = {
   secretPhc: string;
   owner: string;
   isAdmin?: boolean;
+  roles?: string[];
   expiresAt?: number;
 };
 
@@ -88,8 +90,14 @@ export type IssueConfig = {
   tokenId?: string;
   owner: string;
   isAdmin?: boolean;
+  roles?: string[];
   expiresAt?: number;
 };
+
+export type RolesUpdate =
+  | string[]
+  | { add: string[]; remove?: never }
+  | { add?: never; remove: string[] };
 
 export type IssueResult = {
   token: string;
@@ -230,6 +238,7 @@ export class DynamoDBPat {
     const limit = options?.limit;
     const batchLimit = options?.batchLimit;
     const includeSecretPhc = options?.includeSecretPhc ?? false;
+    const hasRole = options?.hasRole;
 
     do {
       const scanParams: ScanCommandInput = {
@@ -257,6 +266,12 @@ export class DynamoDBPat {
           const parseResult = tokenRecordSchema.safeParse(item);
           if (parseResult.success) {
             const { data } = parseResult;
+
+            // Filter by role if specified
+            if (hasRole && !data.roles?.includes(hasRole)) {
+              continue;
+            }
+
             yield includeSecretPhc ? data : omitSecretPhc(data);
             ++yielded;
 
@@ -394,13 +409,21 @@ export class DynamoDBPat {
    * @returns The registered token.
    */
   async register(config: RegisterConfig): Promise<TokenRecord> {
-    const { tokenId, secretPhc, owner, isAdmin = false, expiresAt } = config;
+    const {
+      tokenId,
+      secretPhc,
+      owner,
+      isAdmin = false,
+      roles,
+      expiresAt,
+    } = config;
 
     const record: TokenRecord = {
       tokenId,
       secretPhc,
       owner,
       isAdmin,
+      ...(roles?.length && { roles }),
       createdAt: Math.floor(Date.now() / 1000),
       ...(expiresAt !== undefined && { expiresAt }),
     };
@@ -419,11 +442,18 @@ export class DynamoDBPat {
   async issue(config: IssueConfig): Promise<IssueResult> {
     const { secret, secretPhc } = await this.createSecret();
 
-    const { tokenId = id62(), owner, isAdmin = false, expiresAt } = config;
+    const {
+      tokenId = id62(),
+      owner,
+      isAdmin = false,
+      roles,
+      expiresAt,
+    } = config;
     const record: ValidTokenRecord = {
       tokenId,
       owner,
       isAdmin,
+      ...(roles?.length && { roles }),
       createdAt: Math.floor(Date.now() / 1000),
       ...(expiresAt !== undefined && { expiresAt }),
     };
@@ -474,10 +504,18 @@ export class DynamoDBPat {
 
     const lastUsedAt = await this.touch(tokenId);
 
-    const { owner, isAdmin, createdAt, expiresAt } = record;
+    const { owner, isAdmin, roles, createdAt, expiresAt } = record;
     return {
       valid: true,
-      record: { tokenId, owner, isAdmin, createdAt, lastUsedAt, expiresAt },
+      record: {
+        tokenId,
+        owner,
+        isAdmin,
+        ...(roles?.length && { roles }),
+        createdAt,
+        lastUsedAt,
+        expiresAt,
+      },
     };
   }
 
@@ -558,26 +596,52 @@ export class DynamoDBPat {
    *
    * @param tokenId The ID of the token to update.
    * @param updates The updates to apply.
+   *
+   * @example
+   * // Update basic properties
+   * await pat.update(tokenId, { owner: "new@example.com", isAdmin: true });
+   *
+   * @example
+   * // Replace all roles
+   * await pat.update(tokenId, { roles: ["reader", "writer"] });
+   *
+   * @example
+   * // Add roles atomically
+   * await pat.update(tokenId, { roles: { add: ["admin"] } });
+   *
+   * @example
+   * // Remove roles atomically
+   * await pat.update(tokenId, { roles: { remove: ["guest"] } });
    */
   async update(
     tokenId: string,
     updates: Partial<
       Pick<TokenRecord, "secretPhc" | "owner" | "isAdmin" | "expiresAt">
-    >,
+    > & { roles?: RolesUpdate },
   ): Promise<void> {
-    if (updates.secretPhc) {
+    const { roles, ...otherUpdates } = updates;
+
+    if (otherUpdates.secretPhc) {
       // Validate the PHC string before storing it
-      const parsed = this.parsePhc(updates.secretPhc);
+      const parsed = this.parsePhc(otherUpdates.secretPhc);
       if (!parsed.valid) {
         throw new Error(`Invalid secret PHC string: ${parsed.reason}`);
       }
     }
 
+    // Build update expression parts dynamically
     const setParts: string[] = [];
+    const removeParts: string[] = [];
+    const addParts: string[] = [];
+    const deleteParts: string[] = [];
     const names: Record<string, string> = {};
-    const values: Record<string, string | number | boolean | null> = {};
+    const values: Record<
+      string,
+      string | number | boolean | null | Set<string>
+    > = {};
 
-    for (const [key, value] of Object.entries(updates)) {
+    // Handle regular field updates
+    for (const [key, value] of Object.entries(otherUpdates)) {
       if (value === undefined) {
         continue;
       }
@@ -588,24 +652,64 @@ export class DynamoDBPat {
       values[`:${key}`] = value;
     }
 
+    // Handle roles updates
+    if (roles !== undefined) {
+      names["#roles"] = "roles";
+      if (Array.isArray(roles)) {
+        if (roles.length === 0) {
+          // DynamoDB doesn't allow empty String Sets - remove the attribute entirely
+          removeParts.push("#roles");
+        } else {
+          setParts.push("#roles = :roles");
+          values[":roles"] = new Set(roles);
+        }
+      } else if ("add" in roles && roles.add?.length) {
+        addParts.push("#roles :addRoles");
+        values[":addRoles"] = new Set(roles.add);
+      } else if ("remove" in roles && roles.remove?.length) {
+        deleteParts.push("#roles :removeRoles");
+        values[":removeRoles"] = new Set(roles.remove);
+      }
+    }
+
+    // Build the combined update expression
+    const expressionParts: string[] = [];
     if (setParts.length > 0) {
-      try {
-        await this.docClient.send(
-          new UpdateCommand({
-            TableName: this.tableName,
-            Key: { tokenId },
-            ConditionExpression: "attribute_exists(tokenId)",
-            UpdateExpression: `SET ${setParts.join(", ")}`,
-            ExpressionAttributeNames: names,
+      expressionParts.push(`SET ${setParts.join(", ")}`);
+    }
+    if (removeParts.length > 0) {
+      expressionParts.push(`REMOVE ${removeParts.join(", ")}`);
+    }
+    if (addParts.length > 0) {
+      expressionParts.push(`ADD ${addParts.join(", ")}`);
+    }
+    if (deleteParts.length > 0) {
+      expressionParts.push(`DELETE ${deleteParts.join(", ")}`);
+    }
+
+    // If no updates, return early
+    if (expressionParts.length === 0) {
+      return;
+    }
+
+    try {
+      await this.docClient.send(
+        new UpdateCommand({
+          TableName: this.tableName,
+          Key: { tokenId },
+          ConditionExpression: "attribute_exists(tokenId)",
+          UpdateExpression: expressionParts.join(" "),
+          ExpressionAttributeNames: names,
+          ...(Object.keys(values).length > 0 && {
             ExpressionAttributeValues: values,
           }),
-        );
-      } catch (err) {
-        if (err instanceof ConditionalCheckFailedException) {
-          throw new Error(`Token not found: ${tokenId}`);
-        }
-        throw err;
+        }),
+      );
+    } catch (err) {
+      if (err instanceof ConditionalCheckFailedException) {
+        throw new Error(`Token not found: ${tokenId}`);
       }
+      throw err;
     }
   }
 
@@ -797,11 +901,18 @@ export class DynamoDBPat {
       );
     }
 
+    const { roles, ...rest } = parseResult.data;
+    const item: Record<string, unknown> = rest;
+    if (roles?.length) {
+      // Convert roles array to Set for DynamoDB storage (enables atomic ADD/DELETE)
+      item.roles = new Set(roles);
+    }
+
     try {
       await this.docClient.send(
         new PutCommand({
           TableName: this.tableName,
-          Item: parseResult.data,
+          Item: item,
           ConditionExpression: "attribute_not_exists(tokenId)",
         }),
       );

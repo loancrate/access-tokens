@@ -4,7 +4,12 @@ import createError from "http-errors";
 import pino from "pino";
 import * as z from "zod";
 
-import { DynamoDBPat, PublicTokenRecord } from "@access-tokens/core";
+import {
+  DynamoDBPat,
+  MAX_ROLE_LENGTH,
+  MAX_ROLES_COUNT,
+  PublicTokenRecord,
+} from "@access-tokens/core";
 
 import { JwtSignerVerifier } from "./buildSignerVerifier";
 import { createRequireAdmin } from "./createRequireAdmin";
@@ -48,12 +53,24 @@ const getTokensQuerySchema = z.object({
   includeRevoked: z.string().optional().transform(parseBooleanQuery),
   includeExpired: z.string().optional().transform(parseBooleanQuery),
   includeSecretPhc: z.string().optional().transform(parseBooleanQuery),
+  hasRole: z.string().optional(),
 });
+
+const rolesArraySchema = z
+  .array(z.string().min(1).max(MAX_ROLE_LENGTH))
+  .max(MAX_ROLES_COUNT);
+
+const rolesUpdateSchema = z.union([
+  rolesArraySchema,
+  z.strictObject({ add: rolesArraySchema }),
+  z.strictObject({ remove: rolesArraySchema }),
+]);
 
 const adminTokenPostSchema = z.strictObject({
   tokenId: z.string().optional(),
   owner: z.string(),
   isAdmin: z.boolean().optional().default(false),
+  roles: rolesArraySchema.optional(),
   expiresAt: z.number().optional(),
 });
 
@@ -61,6 +78,7 @@ const adminTokenPutSchema = z.strictObject({
   secretPhc: z.string(),
   owner: z.string(),
   isAdmin: z.boolean().optional().default(false),
+  roles: rolesArraySchema.optional(),
   expiresAt: z.number().optional(),
 });
 
@@ -68,6 +86,7 @@ const adminTokenPatchSchema = z.strictObject({
   secretPhc: z.string().optional(),
   owner: z.string().optional(),
   isAdmin: z.boolean().optional(),
+  roles: rolesUpdateSchema.optional(),
   expiresAt: z.number().optional().nullable(),
 });
 
@@ -106,15 +125,17 @@ export function createAdminTokensRouter({
         includeRevoked,
         includeExpired,
         includeSecretPhc,
+        hasRole,
       } = queryParsed.data;
 
-      const now = Date.now();
+      const now = Math.floor(Date.now() / 1000);
       const records: PublicTokenRecord[] = [];
 
       for await (const record of pat.list({
         afterTokenId,
         limit,
         includeSecretPhc,
+        hasRole,
       })) {
         const isRevoked = record.revokedAt != null;
         if (isRevoked && !includeRevoked) {
