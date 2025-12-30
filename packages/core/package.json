@@ -1,6 +1,6 @@
 {
   "name": "@access-tokens/core",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "Personal access token library for secure token generation, verification, and lifecycle management",
   "keywords": [
     "dynamodb",
