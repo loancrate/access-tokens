@@ -17,6 +17,7 @@ export const tokenRecordSchema = z.object({
   secretPhc: z.string().optional(),
   owner: z.string(),
   isAdmin: z.boolean(),
+  roles: z.array(z.string()).optional(),
   createdAt: z.number().int().nonnegative(),
   lastUsedAt: z.number().int().nonnegative().nullish(),
   expiresAt: z.number().int().nonnegative().nullish(),
@@ -50,6 +51,7 @@ export type ListOptions = {
   includeRevoked?: boolean;
   includeExpired?: boolean;
   includeSecretPhc?: boolean;
+  hasRole?: string;
 };
 
 export const batchLoadResultSchema = z.object({
@@ -67,6 +69,7 @@ export type IssueConfig = {
   tokenId?: string;
   owner: string;
   isAdmin?: boolean;
+  roles?: string[];
   expiresAt?: number;
 };
 
@@ -75,13 +78,20 @@ export type RegisterConfig = {
   secretPhc: string;
   owner: string;
   isAdmin?: boolean;
+  roles?: string[];
   expiresAt?: number;
 };
+
+export type RolesUpdate =
+  | string[]
+  | { add: string[]; remove?: never }
+  | { add?: never; remove: string[] };
 
 export type UpdateConfig = {
   secretPhc?: string;
   owner?: string;
   isAdmin?: boolean;
+  roles?: RolesUpdate;
   expiresAt?: number | null;
 };
 

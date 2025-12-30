@@ -9,7 +9,7 @@ Express routes and middleware for Personal Access Token (PAT) authentication wit
 
 - **Ready-to-Use Routes**: Pre-built authentication and admin token management endpoints
 - **JWT Token Exchange**: OAuth 2.0-compatible token endpoint for PAT-to-JWT exchange
-- **Express Middleware**: `requireJwt` and `requireAdmin` middleware for route protection
+- **Express Middleware**: `requireJwt`, `requireAdmin`, and `requireRole` middleware for route protection
 - **JOSE Integration**: Industry-standard JWT signing and verification
 - **TypeScript**: Full type safety with Express request augmentation
 - **Flexible Configuration**: Customizable paths, token lifetime, and key management
@@ -30,6 +30,7 @@ import {
   createAdminTokensRouter,
   createRequireJwt,
   createRequireAdmin,
+  createRequireRole,
   buildSignerVerifier,
   generateKeySet,
 } from "@access-tokens/express";
@@ -58,19 +59,27 @@ app.use("/admin", createAdminTokensRouter({ pat, signerVerifier }));
 
 const requireJwt = createRequireJwt({ signerVerifier });
 const requireAdmin = createRequireAdmin();
+const requireEditor = createRequireRole({ role: "editor" });
 
 // Your protected routes
 app.get("/api/data", requireJwt, (req, res) => {
   res.json({
     message: "User data",
-    user: req.user, // { sub, owner, admin }
+    user: req.user, // { sub, owner, admin, roles }
   });
 });
 
 app.get("/api/admin/data", requireJwt, requireAdmin, (req, res) => {
   res.json({
     message: "Admin data",
-    user: req.user, // { sub, owner, admin }
+    user: req.user, // { sub, owner, admin, roles }
+  });
+});
+
+app.put("/api/content", requireJwt, requireEditor, (req, res) => {
+  res.json({
+    message: "Content updated",
+    user: req.user, // { sub, owner, admin, roles }
   });
 });
 
@@ -162,19 +171,25 @@ Creates an Express router with admin token management endpoints. Requires JWT au
 **Endpoints:**
 
 - `GET /tokens` - List tokens
-  - **Query Params:** `afterTokenId`, `limit`, `includeRevoked`, `includeExpired`, `includeSecretPhc`
+  - **Query Params:** `afterTokenId`, `limit`, `includeRevoked`, `includeExpired`, `includeSecretPhc`, `hasRole`
   - **Response:** `{ "records": [...] }`
 
 - `POST /tokens` - Issue a new token
-  - **Request Body:** `{ "owner": "user@example.com", "isAdmin"?: false, "tokenId"?: "...", "expiresAt"?: 1234567890 }`
+  - **Request Body:** `{ "owner": "user@example.com", "isAdmin"?: false, "roles"?: ["reader"], "tokenId"?: "...", "expiresAt"?: 1234567890 }`
   - **Response:** `{ "token": "pat_...", "record": {...} }`
 
 - `PUT /tokens/:tokenId` - Register pre-generated token
-  - **Request Body:** `{ "secretPhc": "...", "owner": "...", "isAdmin"?: false, "expiresAt"?: 1234567890 }`
+  - **Request Body:** `{ "secretPhc": "...", "owner": "...", "isAdmin"?: false, "roles"?: ["reader"], "expiresAt"?: 1234567890 }`
   - **Response:** `{ "record": {...} }`
 
 - `PATCH /tokens/:tokenId` - Update token
-  - **Request Body:** `{ "owner"?: "...", "isAdmin"?: true, "secretPhc"?: "...", "expiresAt"?: 1234567890 }`
+  - **Request Body:** `{ "owner"?: "...", "isAdmin"?: true, "secretPhc"?: "...", "roles"?: ..., "expiresAt"?: 1234567890 }`
+  - **Roles Update Syntax:**
+    ```json
+    { "roles": ["role1", "role2"] }     // Replace all roles
+    { "roles": { "add": ["admin"] } }   // Atomic add (cannot combine with remove)
+    { "roles": { "remove": ["guest"] } } // Atomic remove (cannot combine with add)
+    ```
   - **Response:** 204 No Content
 
 - `PUT /tokens/:tokenId/revoke` - Revoke token
@@ -213,8 +228,11 @@ req.user = {
   sub: string;      // Token ID
   owner: string;    // Token owner
   admin: boolean;   // Admin status
+  roles: string[];  // Array of role strings
 };
 ```
+
+**Note:** The `roles` array comes from the JWT payload and reflects the roles assigned to the token at the time the JWT was issued.
 
 **Usage:**
 
@@ -246,6 +264,30 @@ const requireAdmin = createRequireAdmin();
 
 app.delete("/users/:id", requireJwt, requireAdmin, (req, res) => {
   // Only admin users can access this
+  res.json({ success: true });
+});
+```
+
+#### `createRequireRole(options)`
+
+Creates middleware that requires `req.user.roles` to include a specific role. Must be used after `requireJwt`.
+
+**Options:**
+
+```typescript
+{
+  role: string;            // Required role name
+  logger?: pino.Logger;    // Optional logger
+}
+```
+
+**Usage:**
+
+```typescript
+const requireEditor = createRequireRole({ role: "editor" });
+
+app.put("/content/:id", requireJwt, requireEditor, (req, res) => {
+  // Only users with "editor" role can access this
   res.json({ success: true });
 });
 ```
@@ -392,6 +434,7 @@ declare global {
         sub: string; // Token ID
         owner: string; // Token owner
         admin: boolean; // Admin status
+        roles: string[]; // Array of role strings
       };
       logger?: Logger; // Optional Pino logger
       clientIp?: string; // Optional client IP (from request-ip)

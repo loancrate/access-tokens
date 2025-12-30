@@ -131,6 +131,101 @@ describe("compareTokens", () => {
     });
   });
 
+  describe("roles changes", () => {
+    it("should detect roles added", () => {
+      const definition: TokenDefinition = {
+        ...baseDefinition,
+        roles: ["admin", "reader"],
+      };
+
+      const result = compareTokens(definition, baseRemote);
+
+      expect(result.changes).toEqual([
+        {
+          field: "roles",
+          oldValue: [],
+          newValue: ["admin", "reader"],
+        },
+      ]);
+      expect(result.needsUpdate).toBe(true);
+    });
+
+    it("should detect roles removed", () => {
+      const definition: TokenDefinition = {
+        ...baseDefinition,
+        roles: [],
+      };
+
+      const remote: TokenRecord = {
+        ...baseRemote,
+        roles: ["admin", "reader"],
+      };
+
+      const result = compareTokens(definition, remote);
+
+      expect(result.changes).toEqual([
+        {
+          field: "roles",
+          oldValue: ["admin", "reader"],
+          newValue: [],
+        },
+      ]);
+      expect(result.needsUpdate).toBe(true);
+    });
+
+    it("should detect roles changed", () => {
+      const definition: TokenDefinition = {
+        ...baseDefinition,
+        roles: ["writer"],
+      };
+
+      const remote: TokenRecord = {
+        ...baseRemote,
+        roles: ["reader"],
+      };
+
+      const result = compareTokens(definition, remote);
+
+      expect(result.changes).toEqual([
+        {
+          field: "roles",
+          oldValue: ["reader"],
+          newValue: ["writer"],
+        },
+      ]);
+      expect(result.needsUpdate).toBe(true);
+    });
+
+    it("should not detect change when roles are same but in different order", () => {
+      const definition: TokenDefinition = {
+        ...baseDefinition,
+        roles: ["reader", "admin"],
+      };
+
+      const remote: TokenRecord = {
+        ...baseRemote,
+        roles: ["admin", "reader"],
+      };
+
+      const result = compareTokens(definition, remote);
+
+      expect(result.changes).toEqual([]);
+      expect(result.needsUpdate).toBe(false);
+    });
+
+    it("should not detect change when roles is undefined in definition", () => {
+      const remote: TokenRecord = {
+        ...baseRemote,
+        roles: ["admin"],
+      };
+
+      const result = compareTokens(baseDefinition, remote);
+
+      expect(result.changes).toEqual([]);
+      expect(result.needsUpdate).toBe(false);
+    });
+  });
+
   describe("secretPhc changes", () => {
     it("should detect secretPhc change", () => {
       const definition: TokenDefinition = {

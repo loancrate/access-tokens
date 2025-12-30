@@ -188,6 +188,7 @@ async function syncToEndpoint({
             secretPhc: definition.secretPhc,
             owner: definition.owner,
             isAdmin: definition.isAdmin,
+            roles: definition.roles,
             expiresAt: definition.expiresAt || undefined,
           });
           logger.success(
@@ -228,6 +229,7 @@ async function syncToEndpoint({
         isAdmin?: boolean;
         secretPhc?: string;
         expiresAt?: number | null;
+        roles?: string[];
       } = {};
 
       for (const change of diff.changes) {
@@ -248,6 +250,9 @@ async function syncToEndpoint({
             "expiresAt must be a number or null",
           );
           updates.expiresAt = change.newValue;
+        } else if (change.field === "roles") {
+          assert(Array.isArray(change.newValue), "roles must be an array");
+          updates.roles = change.newValue.map(String);
         }
       }
 

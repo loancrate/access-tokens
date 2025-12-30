@@ -12,6 +12,7 @@ as a storage backend.
 
 - **Secure Token Management**: Scrypt-based hashing with PHC format
 - **OAuth 2.0 Compatible**: JWT token exchange for API access
+- **Role-Based Access Control**: Attach arbitrary roles to tokens with atomic add/remove operations
 - **Express Integration**: Ready-to-use routes and middleware
 - **HTTP Client**: Type-safe client library for token operations
 - **CLI Tools**: Command-line interface for token management

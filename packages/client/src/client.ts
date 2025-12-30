@@ -97,6 +97,9 @@ export class AccessTokensClient {
     if (options?.includeSecretPhc) {
       params.set("includeSecretPhc", "true");
     }
+    if (options?.hasRole) {
+      params.set("hasRole", options.hasRole);
+    }
 
     const query = params.toString();
     const url = `${this.endpoint}${this.adminPath}/tokens${query && `?${query}`}`;

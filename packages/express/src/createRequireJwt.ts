@@ -11,6 +11,7 @@ export interface ExtendedJwtPayload extends JWTPayload {
   sub: string;
   owner: string;
   admin: boolean;
+  roles?: string[];
 }
 
 export type CreateRequireJwtConfig = {
@@ -49,8 +50,8 @@ export function createRequireJwt({
       }
 
       const { payload } = verifyResult;
-      const { sub, owner, admin } = payload;
-      req.user = { sub, owner, admin };
+      const { sub, owner, admin, roles } = payload;
+      req.user = { sub, owner, admin, roles: roles ?? [] };
 
       next();
     } catch (err) {

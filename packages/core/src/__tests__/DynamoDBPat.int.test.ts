@@ -219,6 +219,22 @@ describe("DynamoDBPat integration", () => {
       assert(verifyResult.valid);
       expect(verifyResult.record.expiresAt).toBe(futureTimestamp);
     });
+
+    it("should create token with roles", async () => {
+      const owner = "roles-test-user";
+      const roles = ["reader", "writer"];
+      const { token, record } = await pat.issue({
+        owner,
+        roles,
+      });
+
+      expect(record.roles).toEqual(roles);
+
+      const verifyResult = await pat.verify(token);
+      assert(verifyResult.valid);
+      expect(verifyResult.record.roles).toEqual(expect.arrayContaining(roles));
+      expect(verifyResult.record.roles).toHaveLength(roles.length);
+    });
   });
 
   describe("register", () => {
@@ -241,6 +257,24 @@ describe("DynamoDBPat integration", () => {
       expect(record.owner).toBe(owner);
       expect(record.isAdmin).toBe(true);
       expect(record.expiresAt).toBe(futureTimestamp);
+    });
+
+    it("should register token with roles", async () => {
+      const tokenId = "registerRoles12345678";
+      const secretPhc = "$fake";
+      const owner = "register-roles-user";
+      const roles = ["admin", "moderator"];
+
+      const record = await pat.register({
+        tokenId,
+        secretPhc,
+        owner,
+        roles,
+      });
+
+      expect(record.tokenId).toBe(tokenId);
+      expect(record.roles).toEqual(expect.arrayContaining(roles));
+      expect(record.roles).toHaveLength(roles.length);
     });
   });
 
@@ -672,6 +706,199 @@ describe("DynamoDBPat integration", () => {
     });
   });
 
+  describe("roles", () => {
+    it("should replace all roles with array", async () => {
+      const { token, record } = await pat.issue({
+        owner: "roles-replace-user",
+        roles: ["reader", "writer"],
+      });
+
+      expect(record.roles).toEqual(
+        expect.arrayContaining(["reader", "writer"]),
+      );
+
+      await pat.update(record.tokenId, { roles: ["admin", "superuser"] });
+
+      const verifyResult = await pat.verify(token);
+      assert(verifyResult.valid);
+      expect(verifyResult.record.roles).toEqual(
+        expect.arrayContaining(["admin", "superuser"]),
+      );
+      expect(verifyResult.record.roles).toHaveLength(2);
+    });
+
+    it("should clear all roles with empty array", async () => {
+      const { token, record } = await pat.issue({
+        owner: "roles-clear-user",
+        roles: ["reader", "writer"],
+      });
+
+      expect(record.roles).toHaveLength(2);
+
+      await pat.update(record.tokenId, { roles: [] });
+
+      const verifyResult = await pat.verify(token);
+      assert(verifyResult.valid);
+      expect(verifyResult.record.roles).toBeUndefined();
+    });
+
+    it("should add roles atomically", async () => {
+      const { token, record } = await pat.issue({
+        owner: "roles-add-user",
+        roles: ["reader"],
+      });
+
+      await pat.update(record.tokenId, { roles: { add: ["writer", "admin"] } });
+
+      const verifyResult = await pat.verify(token);
+      assert(verifyResult.valid);
+      expect(verifyResult.record.roles).toEqual(
+        expect.arrayContaining(["reader", "writer", "admin"]),
+      );
+      expect(verifyResult.record.roles).toHaveLength(3);
+    });
+
+    it("should add roles to token with no existing roles", async () => {
+      const { token, record } = await pat.issue({
+        owner: "roles-add-empty-user",
+      });
+
+      expect(record.roles).toBeUndefined();
+
+      await pat.update(record.tokenId, {
+        roles: { add: ["reader", "writer"] },
+      });
+
+      const verifyResult = await pat.verify(token);
+      assert(verifyResult.valid);
+      expect(verifyResult.record.roles).toEqual(
+        expect.arrayContaining(["reader", "writer"]),
+      );
+      expect(verifyResult.record.roles).toHaveLength(2);
+    });
+
+    it("should remove roles atomically", async () => {
+      const { token, record } = await pat.issue({
+        owner: "roles-remove-user",
+        roles: ["reader", "writer", "admin"],
+      });
+
+      await pat.update(record.tokenId, { roles: { remove: ["writer"] } });
+
+      const verifyResult = await pat.verify(token);
+      assert(verifyResult.valid);
+      expect(verifyResult.record.roles).toEqual(
+        expect.arrayContaining(["reader", "admin"]),
+      );
+      expect(verifyResult.record.roles).toHaveLength(2);
+    });
+
+    it("should handle removing non-existent roles", async () => {
+      const { token, record } = await pat.issue({
+        owner: "roles-remove-nonexistent-user",
+        roles: ["reader"],
+      });
+
+      await pat.update(record.tokenId, {
+        roles: { remove: ["nonexistent-role"] },
+      });
+
+      const verifyResult = await pat.verify(token);
+      assert(verifyResult.valid);
+      expect(verifyResult.record.roles).toEqual(["reader"]);
+    });
+
+    it("should add then remove roles in separate calls", async () => {
+      const { token, record } = await pat.issue({
+        owner: "roles-add-remove-user",
+        roles: ["reader", "writer"],
+      });
+
+      // Add first
+      await pat.update(record.tokenId, { roles: { add: ["admin"] } });
+
+      // Then remove
+      await pat.update(record.tokenId, { roles: { remove: ["writer"] } });
+
+      const verifyResult = await pat.verify(token);
+      assert(verifyResult.valid);
+      expect(verifyResult.record.roles).toEqual(
+        expect.arrayContaining(["reader", "admin"]),
+      );
+      expect(verifyResult.record.roles).toHaveLength(2);
+      expect(verifyResult.record.roles).not.toContain("writer");
+    });
+
+    it("should update roles and other fields atomically", async () => {
+      const { token, record } = await pat.issue({
+        owner: "atomic-update-user",
+        isAdmin: false,
+        roles: ["reader"],
+      });
+
+      await pat.update(record.tokenId, {
+        owner: "new-atomic-update-user",
+        isAdmin: true,
+        roles: { add: ["admin"] },
+      });
+
+      const verifyResult = await pat.verify(token);
+      assert(verifyResult.valid);
+      expect(verifyResult.record.owner).toBe("new-atomic-update-user");
+      expect(verifyResult.record.isAdmin).toBe(true);
+      expect(verifyResult.record.roles).toEqual(
+        expect.arrayContaining(["reader", "admin"]),
+      );
+    });
+
+    it("should replace roles and update other fields atomically", async () => {
+      const { token, record } = await pat.issue({
+        owner: "atomic-replace-user",
+        isAdmin: false,
+        roles: ["reader", "writer"],
+      });
+
+      const futureTimestamp = Math.floor(Date.now() / 1000) + 3600;
+      await pat.update(record.tokenId, {
+        isAdmin: true,
+        expiresAt: futureTimestamp,
+        roles: ["superadmin"],
+      });
+
+      const verifyResult = await pat.verify(token);
+      assert(verifyResult.valid);
+      expect(verifyResult.record.isAdmin).toBe(true);
+      expect(verifyResult.record.expiresAt).toBe(futureTimestamp);
+      expect(verifyResult.record.roles).toEqual(["superadmin"]);
+    });
+
+    it("should handle empty add array as no-op", async () => {
+      const { token, record } = await pat.issue({
+        owner: "roles-empty-add-user",
+        roles: ["reader"],
+      });
+
+      await pat.update(record.tokenId, { roles: { add: [] } });
+
+      const verifyResult = await pat.verify(token);
+      assert(verifyResult.valid);
+      expect(verifyResult.record.roles).toEqual(["reader"]);
+    });
+
+    it("should handle empty remove array as no-op", async () => {
+      const { token, record } = await pat.issue({
+        owner: "roles-empty-remove-user",
+        roles: ["reader"],
+      });
+
+      await pat.update(record.tokenId, { roles: { remove: [] } });
+
+      const verifyResult = await pat.verify(token);
+      assert(verifyResult.valid);
+      expect(verifyResult.record.roles).toEqual(["reader"]);
+    });
+  });
+
   describe("getCount", () => {
     it("should eventually return correct count after issuing tokens", async () => {
       const initialCount = await pat.getCount();
@@ -779,6 +1006,89 @@ describe("DynamoDBPat integration", () => {
         await ddbClient.send(
           new DeleteTableCommand({
             TableName: listTableName,
+          }),
+        );
+      }
+    });
+
+    it("should filter tokens by role using hasRole option", async () => {
+      const rolesTableName = `${tableName}-roles-filter`;
+      const patForRoles = new DynamoDBPat({
+        ddbClient,
+        tableName: rolesTableName,
+        tokenPrefix,
+      });
+
+      await createTokenTable(ddbClient, rolesTableName);
+
+      try {
+        // Create tokens with different roles
+        const tokenId1 = id62();
+        await patForRoles.issue({
+          tokenId: tokenId1,
+          owner: "user-1",
+          roles: ["reader", "writer"],
+        });
+
+        const tokenId2 = id62();
+        await patForRoles.issue({
+          tokenId: tokenId2,
+          owner: "user-2",
+          roles: ["admin"],
+        });
+
+        const tokenId3 = id62();
+        await patForRoles.issue({
+          tokenId: tokenId3,
+          owner: "user-3",
+          roles: ["reader"],
+        });
+
+        const tokenId4 = id62();
+        await patForRoles.issue({
+          tokenId: tokenId4,
+          owner: "user-4",
+          // No roles
+        });
+
+        // Filter by "reader" role - should get 2 tokens
+        const readerTokens = [];
+        for await (const token of patForRoles.list({ hasRole: "reader" })) {
+          readerTokens.push(token);
+        }
+        expect(readerTokens).toHaveLength(2);
+        const readerIds = new Set(readerTokens.map((t) => t.tokenId));
+        expect(readerIds.has(tokenId1)).toBe(true);
+        expect(readerIds.has(tokenId3)).toBe(true);
+
+        // Filter by "admin" role - should get 1 token
+        const adminTokens = [];
+        for await (const token of patForRoles.list({ hasRole: "admin" })) {
+          adminTokens.push(token);
+        }
+        expect(adminTokens).toHaveLength(1);
+        expect(adminTokens[0].tokenId).toBe(tokenId2);
+
+        // Filter by "writer" role - should get 1 token
+        const writerTokens = [];
+        for await (const token of patForRoles.list({ hasRole: "writer" })) {
+          writerTokens.push(token);
+        }
+        expect(writerTokens).toHaveLength(1);
+        expect(writerTokens[0].tokenId).toBe(tokenId1);
+
+        // Filter by non-existent role - should get 0 tokens
+        const noTokens = [];
+        for await (const token of patForRoles.list({
+          hasRole: "nonexistent",
+        })) {
+          noTokens.push(token);
+        }
+        expect(noTokens).toHaveLength(0);
+      } finally {
+        await ddbClient.send(
+          new DeleteTableCommand({
+            TableName: rolesTableName,
           }),
         );
       }

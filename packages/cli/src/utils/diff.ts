@@ -64,6 +64,21 @@ export function compareTokens(
     });
   }
 
+  if (definition.roles !== undefined) {
+    const oldValue = [...(remote.roles || [])].sort();
+    const newValue = [...(definition.roles || [])].sort();
+    const rolesMatch =
+      newValue.length === oldValue.length &&
+      newValue.every((r, i) => r === oldValue[i]);
+    if (!rolesMatch) {
+      changes.push({
+        field: "roles",
+        oldValue,
+        newValue,
+      });
+    }
+  }
+
   if (definition.secretPhc && definition.secretPhc !== remote.secretPhc) {
     changes.push({
       field: "secretPhc",

@@ -92,6 +92,7 @@ Lists all tokens.
   includeRevoked?: boolean;     // Include revoked tokens (default: false)
   includeExpired?: boolean;     // Include expired tokens (default: false)
   includeSecretPhc?: boolean;   // Include secret hashes (default: false)
+  hasRole?: string;             // Filter tokens that have this role (optional)
   limit?: number;               // Max results per page
   afterTokenId?: string;        // Pagination token (tokenId to start after)
 }
@@ -127,6 +128,7 @@ Issues a new token.
 {
   owner: string;           // Token owner (e.g., email address)
   isAdmin?: boolean;       // Whether token has admin privileges (default: false)
+  roles?: string[];        // Array of role strings (optional, max 50 roles, 100 chars each)
   expiresAt?: number;      // Unix timestamp for expiration (optional)
 }
 ```
@@ -157,6 +159,7 @@ Registers a pre-generated token.
   secretPhc: string;       // PHC-formatted secret hash
   owner: string;           // Token owner
   isAdmin?: boolean;       // Admin status (default: false)
+  roles?: string[];        // Array of role strings (optional)
   expiresAt?: number;      // Expiration timestamp (optional)
 }
 ```
@@ -182,9 +185,26 @@ Updates an existing token.
 {
   owner?: string;          // New owner
   isAdmin?: boolean;       // New admin status
+  roles?: RolesUpdate;     // Update roles (see below)
   secretPhc?: string;      // New secret hash
   expiresAt?: number | null; // New expiration or null to remove
 }
+```
+
+**Roles Update Syntax:**
+
+```typescript
+// Replace all roles
+await client.update(tokenId, { roles: ["reader", "writer"] });
+
+// Add roles atomically (idempotent, cannot combine with remove)
+await client.update(tokenId, { roles: { add: ["admin"] } });
+
+// Remove roles atomically (idempotent, cannot combine with add)
+await client.update(tokenId, { roles: { remove: ["guest"] } });
+
+// Clear all roles
+await client.update(tokenId, { roles: [] });
 ```
 
 **Example:**
@@ -300,12 +320,22 @@ interface PatRecord {
   tokenId: string; // Unique token identifier (21 chars, alphanumeric)
   owner: string; // Token owner
   isAdmin: boolean; // Admin privileges
+  roles?: string[]; // Array of role strings
   secretPhc?: string; // PHC hash (only if includeSecretPhc=true)
   createdAt: number; // Unix timestamp
   lastUsedAt?: number | null; // Unix timestamp of last use
   expiresAt?: number | null; // Unix timestamp for expiration
   revokedAt?: number | null; // Unix timestamp when revoked (null if not revoked)
 }
+```
+
+### `RolesUpdate`
+
+```typescript
+type RolesUpdate =
+  | string[] // Replace all roles
+  | { add: string[] } // Atomic add (cannot combine with remove)
+  | { remove: string[] }; // Atomic remove (cannot combine with add)
 ```
 
 ### `ApiError`

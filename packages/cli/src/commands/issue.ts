@@ -2,6 +2,7 @@ import { ConfigLoader } from "../config/loader";
 import { createClient } from "../utils/client-factory";
 import { parseDate } from "../utils/date-parser";
 import { Logger } from "../utils/logger";
+import { splitAndTrim } from "../utils/splitAndTrim";
 
 export type IssueOptions = {
   endpoint?: string;
@@ -11,6 +12,7 @@ export type IssueOptions = {
   adminPath?: string;
   owner: string;
   admin?: boolean;
+  roles?: string;
   expiresAt?: string;
   configDir?: string;
   json?: boolean;
@@ -30,11 +32,14 @@ export async function issueCommand(options: IssueOptions): Promise<void> {
     ? parseDate(options.expiresAt)
     : undefined;
 
+  const roles = options.roles ? splitAndTrim(options.roles) : undefined;
+
   logger.verbose(`Issuing token for ${options.owner}...`);
 
   const result = await client.issue({
     owner: options.owner,
     isAdmin: options.admin,
+    roles,
     expiresAt: expiresAt || undefined,
   });
 

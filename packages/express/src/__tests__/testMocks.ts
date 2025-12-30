@@ -26,6 +26,7 @@ export function createMockPat(): jest.Mocked<DynamoDBPat> {
   // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
   return {
     list: jest.fn(),
+    batchLoad: jest.fn(),
     generate: jest.fn(),
     register: jest.fn(),
     issue: jest.fn(),

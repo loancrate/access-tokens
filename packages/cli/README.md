@@ -118,6 +118,7 @@ access-tokens list --endpoint prod --json
 - `--include-revoked` - Include revoked tokens
 - `--include-expired` - Include expired tokens
 - `--include-secret-phc` - Include secret PHC hashes
+- `--has-role <role>` - Filter tokens that have this role
 - `--json` - Output as JSON
 - `--verbose` - Verbose output
 - `--quiet` - Minimal output
@@ -136,6 +137,7 @@ access-tokens issue \
   --url https://api.example.com \
   --admin-token <token> \
   --owner user@example.com \
+  --roles reader,writer \
   --expires-at 2025-12-31
 ```
 
@@ -149,6 +151,7 @@ access-tokens issue \
 - `--config-dir <path>` - Config directory (default: ~/.access-tokens-cli)
 - `--owner <email>` - Token owner (required)
 - `--admin` - Make token an admin token
+- `--roles <roles>` - Comma-separated list of roles
 - `--expires-at <date>` - Expiration date (ISO 8601 or Unix timestamp)
 - `--json` - Output as JSON
 - `--verbose` - Verbose output
@@ -193,20 +196,41 @@ access-tokens register \
 Update an existing token's properties.
 
 ```bash
+# Update owner
 access-tokens update \
   --endpoint prod \
   --token-id 9Xj2kLm5nPqRs7tUv \
   --owner newuser@example.com
 
+# Update admin flag
 access-tokens update \
   --endpoint prod \
   --token-id 9Xj2kLm5nPqRs7tUv \
   --admin true
 
+# Clear expiration
 access-tokens update \
   --endpoint prod \
   --token-id 9Xj2kLm5nPqRs7tUv \
   --expires-at null
+
+# Update roles
+access-tokens update \
+  --endpoint prod \
+  --token-id 9Xj2kLm5nPqRs7tUv \
+  --roles reader,writer
+
+# Add roles atomically
+access-tokens update \
+  --endpoint prod \
+  --token-id 9Xj2kLm5nPqRs7tUv \
+  --add-roles admin
+
+# Remove roles atomically
+access-tokens update \
+  --endpoint prod \
+  --token-id 9Xj2kLm5nPqRs7tUv \
+  --remove-roles guest
 ```
 
 **Options:**
@@ -221,6 +245,9 @@ access-tokens update \
 - `--owner <email>` - New owner
 - `--admin <boolean>` - New admin status (true/false)
 - `--secret-phc <phc>` - New secret PHC hash
+- `--roles <roles>` - Replace all roles (comma-separated)
+- `--add-roles <roles>` - Add roles atomically (comma-separated)
+- `--remove-roles <roles>` - Remove roles atomically (comma-separated)
 - `--expires-at <date>` - New expiration or "null" to remove
 - `--verbose` - Verbose output
 - `--quiet` - Minimal output
@@ -283,12 +310,14 @@ tokens:
   - tokenId: service-a-prod
     owner: service-a@example.com
     isAdmin: false
+    roles: [reader, writer]
     secretPhc: $scrypt$n=16384,r=8,p=1$...
     expiresAt: 1735689599
 
   - tokenId: admin-bot
     owner: admin-bot@example.com
     isAdmin: true
+    roles: [admin, reader, writer]
     secretPhc: $scrypt$n=16384,r=8,p=1$...
 ```
 

@@ -50,6 +50,7 @@ describe("createRequireAdmin", () => {
         sub: "regular-user",
         owner: "regular-owner",
         admin: false,
+        roles: [],
       };
       next();
     });
@@ -83,6 +84,7 @@ describe("createRequireAdmin", () => {
         sub: "admin-user",
         owner: "admin-owner",
         admin: true,
+        roles: [],
       };
       next();
     });
@@ -105,6 +107,7 @@ describe("createRequireAdmin", () => {
         sub: "admin-user",
         owner: "admin-owner",
         admin: true,
+        roles: [],
       },
     });
   });
