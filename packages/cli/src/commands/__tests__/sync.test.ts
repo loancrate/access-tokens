@@ -36,6 +36,8 @@ const mockCompareTokens = jest.mocked(diff.compareTokens);
 
 beforeEach(() => {
   jest.clearAllMocks();
+  // Mock Date.now to December 1, 2025 so expiresAt timestamps in tests are in the future
+  jest.spyOn(Date, "now").mockReturnValue(1733011200000);
   mockResolveDirectEndpointConfig.mockReturnValue(mockConfig);
   mockResolveEndpointConfig.mockReturnValue(mockConfig);
   mockCheckFilePermissions.mockResolvedValue(undefined);
