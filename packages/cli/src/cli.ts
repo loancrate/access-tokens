@@ -189,6 +189,10 @@ export async function run(params: RunParameters): Promise<number> {
       .option("--admin-path <path>", "Admin path (default: /admin)")
       .option("--dry-run", "Show what would be done without making changes")
       .option(
+        "--orphan-expires-in <duration>",
+        "Expiration for revoked orphan tokens (ISO 8601 duration, default: P30D)",
+      )
+      .option(
         "--config-dir <path>",
         "Config directory (default: ~/.access-tokens-cli)",
       ),

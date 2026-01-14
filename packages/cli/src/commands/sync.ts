@@ -9,6 +9,7 @@ import type {
 import { createClient } from "../utils/client-factory";
 import { formatDate } from "../utils/date-parser";
 import { compareTokens } from "../utils/diff";
+import { addDurationToNow } from "../utils/duration-parser";
 import { Logger } from "../utils/logger";
 import { checkFilePermissions } from "../utils/permissions";
 
@@ -20,6 +21,7 @@ export type SyncOptions = {
   authPath?: string;
   adminPath?: string;
   dryRun?: boolean;
+  orphanExpiresIn?: string;
   configDir?: string;
   verbose?: boolean;
   quiet?: boolean;
@@ -63,6 +65,7 @@ export async function syncCommand(options: SyncOptions): Promise<void> {
       endpointConfig,
       tokens: syncConfig.tokens,
       dryRun: options.dryRun || false,
+      orphanExpiresIn: options.orphanExpiresIn || "P30D",
       logger,
     });
 
@@ -144,60 +147,57 @@ async function syncToEndpoint({
   endpointConfig,
   tokens,
   dryRun,
+  orphanExpiresIn,
   logger,
 }: {
   endpointConfig: MergedEndpointConfig;
   tokens: TokenDefinition[];
   dryRun: boolean;
+  orphanExpiresIn: string;
   logger: Logger;
 }): Promise<void> {
   const client = createClient(endpointConfig);
 
-  const tokenIds = tokens.map((t) => t.tokenId);
-  logger.verbose(`Fetching ${tokenIds.length} token(s)...`);
+  logger.verbose(`Fetching remote tokens...`);
 
-  const { found } = await client.batchLoad(new Set(tokenIds), {
+  const allRemoteTokens = await client.list({
     includeSecretPhc: true,
   });
 
-  const remoteTokens = new Map(found.map((t) => [t.tokenId, t]));
+  const remoteTokens = new Map(allRemoteTokens.map((t) => [t.tokenId, t]));
 
   const now = Math.floor(Date.now() / 1000);
   for (const definition of tokens) {
-    const isExpired =
-      definition.expiresAt != null && definition.expiresAt < now;
+    const { tokenId, owner, expiresAt } = definition;
+    const isExpired = expiresAt != null && expiresAt < now;
 
     if (isExpired) {
-      logger.verbose(`Token ${definition.tokenId} is expired, skipping`);
+      logger.verbose(`Token ${tokenId} is expired, skipping`);
       continue;
     }
 
-    const remote = remoteTokens.get(definition.tokenId);
+    const remote = remoteTokens.get(tokenId);
     const diff = compareTokens(definition, remote);
 
     if (!diff.exists) {
       if (definition.secretPhc) {
         if (dryRun) {
-          logger.dryRun(
-            `Would register token ${definition.tokenId} for ${definition.owner}`,
-          );
+          logger.dryRun(`Would register token ${tokenId} for ${owner}`);
         } else {
-          logger.verbose(`Registering token ${definition.tokenId}...`);
+          logger.verbose(`Registering token ${tokenId} for ${owner}...`);
           await client.register({
-            tokenId: definition.tokenId,
+            tokenId,
             secretPhc: definition.secretPhc,
-            owner: definition.owner,
+            owner,
             isAdmin: definition.isAdmin,
             roles: definition.roles,
             expiresAt: definition.expiresAt || undefined,
           });
-          logger.success(
-            `Registered token ${definition.tokenId} for ${definition.owner}`,
-          );
+          logger.success(`Registered token ${tokenId} for ${owner}`);
         }
       } else {
         logger.warn(
-          `Token ${definition.tokenId} not found and no secretPhc provided - skipping`,
+          `Token ${tokenId} not found and no secretPhc provided - skipping`,
         );
       }
       continue;
@@ -205,21 +205,21 @@ async function syncToEndpoint({
 
     if (diff.needsRevoke) {
       if (dryRun) {
-        logger.dryRun(`Would revoke token ${definition.tokenId}`);
+        logger.dryRun(`Would revoke token ${tokenId} for ${owner}`);
       } else {
-        logger.verbose(`Revoking token ${definition.tokenId}...`);
-        await client.revoke(definition.tokenId, {
-          expiresAt: definition.expiresAt || undefined,
+        logger.verbose(`Revoking token ${tokenId} for ${owner}...`);
+        await client.revoke(tokenId, {
+          expiresAt: expiresAt || undefined,
         });
-        logger.info(`Revoked token ${definition.tokenId}`);
+        logger.info(`Revoked token ${tokenId} for ${owner}`);
       }
     } else if (diff.needsRestore) {
       if (dryRun) {
-        logger.dryRun(`Would restore token ${definition.tokenId}`);
+        logger.dryRun(`Would restore token ${tokenId} for ${owner}`);
       } else {
-        logger.verbose(`Restoring token ${definition.tokenId}...`);
-        await client.restore(definition.tokenId);
-        logger.info(`Restored token ${definition.tokenId}`);
+        logger.verbose(`Restoring token ${tokenId} for ${owner}...`);
+        await client.restore(tokenId);
+        logger.info(`Restored token ${tokenId} for ${owner}`);
       }
     }
 
@@ -282,13 +282,31 @@ async function syncToEndpoint({
           })
           .join(", ");
         logger.dryRun(
-          `Would update token ${definition.tokenId}: ${changeList}`,
+          `Would update token ${tokenId} for ${owner}: ${changeList}`,
         );
       } else {
-        logger.verbose(`Updating token ${definition.tokenId}...`);
-        await client.update(definition.tokenId, updates);
+        logger.verbose(`Updating token ${tokenId} for ${owner}...`);
+        await client.update(tokenId, updates);
         const changeList = diff.changes.map((c) => c.field).join(", ");
-        logger.info(`Updated token ${definition.tokenId}: ${changeList}`);
+        logger.info(`Updated token ${tokenId} for ${owner}: ${changeList}`);
+      }
+    }
+  }
+
+  // Revoke tokens that exist remotely but are not in the config
+  const configTokenIds = new Set(tokens.map((t) => t.tokenId));
+  const orphanExpiresAt = addDurationToNow(orphanExpiresIn);
+
+  for (const remoteToken of allRemoteTokens) {
+    const { tokenId, owner } = remoteToken;
+    if (!configTokenIds.has(tokenId) && !remoteToken.revokedAt) {
+      const description = `orphaned token ${tokenId} for ${owner}, expires ${formatDate(orphanExpiresAt)}`;
+      if (dryRun) {
+        logger.dryRun(`Would revoke ${description}`);
+      } else {
+        logger.verbose(`Revoking orphaned token ${tokenId} for ${owner}...`);
+        await client.revoke(tokenId, { expiresAt: orphanExpiresAt });
+        logger.info(`Revoked ${description}`);
       }
     }
   }

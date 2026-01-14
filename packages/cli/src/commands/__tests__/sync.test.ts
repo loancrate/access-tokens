@@ -3,6 +3,7 @@
 jest.mock("../../config/loader");
 jest.mock("../../utils/client-factory");
 jest.mock("../../utils/diff");
+jest.mock("../../utils/duration-parser");
 jest.mock("../../utils/logger");
 jest.mock("../../utils/permissions");
 
@@ -16,6 +17,7 @@ import {
 import { ConfigLoader } from "../../config/loader";
 import * as clientFactory from "../../utils/client-factory";
 import * as diff from "../../utils/diff";
+import * as durationParser from "../../utils/duration-parser";
 import * as permissions from "../../utils/permissions";
 import { syncCommand } from "../sync";
 
@@ -33,11 +35,15 @@ const mockResolveDirectEndpointConfig = jest.spyOn(
 );
 const mockCheckFilePermissions = jest.mocked(permissions.checkFilePermissions);
 const mockCompareTokens = jest.mocked(diff.compareTokens);
+const mockAddDurationToNow = jest.mocked(durationParser.addDurationToNow);
 
 beforeEach(() => {
   jest.clearAllMocks();
   // Mock Date.now to December 1, 2025 so expiresAt timestamps in tests are in the future
   jest.spyOn(Date, "now").mockReturnValue(1733011200000);
+  // Mock addDurationToNow to return a timestamp 30 days from now
+  // December 1, 2025 + 30 days = December 31, 2025 00:00:00 UTC = 1735603200 seconds
+  mockAddDurationToNow.mockReturnValue(1735603200);
   mockResolveDirectEndpointConfig.mockReturnValue(mockConfig);
   mockResolveEndpointConfig.mockReturnValue(mockConfig);
   mockCheckFilePermissions.mockResolvedValue(undefined);
@@ -47,10 +53,7 @@ describe("syncCommand", () => {
   describe("with --url", () => {
     it("should register new token with secretPhc", async () => {
       const mockClient = createMockClient();
-      mockClient.batchLoad.mockResolvedValue({
-        found: [],
-        notFound: ["test123456789012345"],
-      });
+      mockClient.list.mockResolvedValue([]);
       mockClient.register.mockResolvedValue(mockTokenRecord);
       mockCreateClient.mockReturnValue(mockClient);
 
@@ -93,17 +96,14 @@ describe("syncCommand", () => {
 
     it("should update existing token", async () => {
       const mockClient = createMockClient();
-      mockClient.batchLoad.mockResolvedValue({
-        found: [
-          {
-            tokenId: "test123456789012345",
-            owner: "old@example.com",
-            isAdmin: false,
-            createdAt: 1704067200,
-          },
-        ],
-        notFound: [],
-      });
+      mockClient.list.mockResolvedValue([
+        {
+          tokenId: "test123456789012345",
+          owner: "old@example.com",
+          isAdmin: false,
+          createdAt: 1704067200,
+        },
+      ]);
       mockClient.update.mockResolvedValue(undefined);
       mockCreateClient.mockReturnValue(mockClient);
 
@@ -147,17 +147,14 @@ describe("syncCommand", () => {
 
     it("should revoke token when revoked in config", async () => {
       const mockClient = createMockClient();
-      mockClient.batchLoad.mockResolvedValue({
-        found: [
-          {
-            tokenId: "test123456789012345",
-            owner: "test@example.com",
-            isAdmin: false,
-            createdAt: 1704067200,
-          },
-        ],
-        notFound: [],
-      });
+      mockClient.list.mockResolvedValue([
+        {
+          tokenId: "test123456789012345",
+          owner: "test@example.com",
+          isAdmin: false,
+          createdAt: 1704067200,
+        },
+      ]);
       mockClient.revoke.mockResolvedValue(undefined);
       mockCreateClient.mockReturnValue(mockClient);
 
@@ -195,18 +192,15 @@ describe("syncCommand", () => {
 
     it("should restore token when not revoked in config", async () => {
       const mockClient = createMockClient();
-      mockClient.batchLoad.mockResolvedValue({
-        found: [
-          {
-            tokenId: "test123456789012345",
-            owner: "test@example.com",
-            isAdmin: false,
-            createdAt: 1704067200,
-            revokedAt: 1704067200,
-          },
-        ],
-        notFound: [],
-      });
+      mockClient.list.mockResolvedValue([
+        {
+          tokenId: "test123456789012345",
+          owner: "test@example.com",
+          isAdmin: false,
+          createdAt: 1704067200,
+          revokedAt: 1704067200,
+        },
+      ]);
       mockClient.restore.mockResolvedValue(undefined);
       mockCreateClient.mockReturnValue(mockClient);
 
@@ -242,10 +236,7 @@ describe("syncCommand", () => {
 
     it("should skip registration when no secretPhc provided", async () => {
       const mockClient = createMockClient();
-      mockClient.batchLoad.mockResolvedValue({
-        found: [],
-        notFound: ["test123456789012345"],
-      });
+      mockClient.list.mockResolvedValue([]);
       mockCreateClient.mockReturnValue(mockClient);
 
       mockLoadUserConfig.mockResolvedValue(null);
@@ -280,10 +271,7 @@ describe("syncCommand", () => {
 
     it("should support dry-run mode", async () => {
       const mockClient = createMockClient();
-      mockClient.batchLoad.mockResolvedValue({
-        found: [],
-        notFound: ["test123456789012345"],
-      });
+      mockClient.list.mockResolvedValue([]);
       mockCreateClient.mockReturnValue(mockClient);
 
       mockLoadUserConfig.mockResolvedValue(null);
@@ -322,10 +310,7 @@ describe("syncCommand", () => {
   describe("with --endpoint", () => {
     it("should sync to named endpoint", async () => {
       const mockClient = createMockClient();
-      mockClient.batchLoad.mockResolvedValue({
-        found: [],
-        notFound: ["test123456789012345"],
-      });
+      mockClient.list.mockResolvedValue([]);
       mockClient.register.mockResolvedValue(mockTokenRecord);
       mockCreateClient.mockReturnValue(mockClient);
 
@@ -372,10 +357,7 @@ describe("syncCommand", () => {
   describe("multiple endpoints", () => {
     it("should sync to multiple comma-separated endpoints", async () => {
       const mockClient = createMockClient();
-      mockClient.batchLoad.mockResolvedValue({
-        found: [],
-        notFound: ["test123456789012345"],
-      });
+      mockClient.list.mockResolvedValue([]);
       mockClient.register.mockResolvedValue(mockTokenRecord);
       mockCreateClient.mockReturnValue(mockClient);
 
@@ -435,10 +417,7 @@ describe("syncCommand", () => {
 
     it("should sync to all endpoints in config when no endpoint specified", async () => {
       const mockClient = createMockClient();
-      mockClient.batchLoad.mockResolvedValue({
-        found: [],
-        notFound: ["test123456789012345"],
-      });
+      mockClient.list.mockResolvedValue([]);
       mockClient.register.mockResolvedValue(mockTokenRecord);
       mockCreateClient.mockReturnValue(mockClient);
 
@@ -504,10 +483,7 @@ describe("syncCommand", () => {
 
     it("should warn and skip endpoint that fails to resolve", async () => {
       const mockClient = createMockClient();
-      mockClient.batchLoad.mockResolvedValue({
-        found: [],
-        notFound: ["test123456789012345"],
-      });
+      mockClient.list.mockResolvedValue([]);
       mockClient.register.mockResolvedValue(mockTokenRecord);
       mockCreateClient.mockReturnValue(mockClient);
 
@@ -560,10 +536,7 @@ describe("syncCommand", () => {
   describe("expired tokens", () => {
     it("should skip expired tokens", async () => {
       const mockClient = createMockClient();
-      mockClient.batchLoad.mockResolvedValue({
-        found: [],
-        notFound: ["test123456789012345"],
-      });
+      mockClient.list.mockResolvedValue([]);
       mockCreateClient.mockReturnValue(mockClient);
 
       mockLoadUserConfig.mockResolvedValue(null);
@@ -602,10 +575,7 @@ describe("syncCommand", () => {
   describe("dry run mode", () => {
     it("should show dry run for register", async () => {
       const mockClient = createMockClient();
-      mockClient.batchLoad.mockResolvedValue({
-        found: [],
-        notFound: ["test123456789012345"],
-      });
+      mockClient.list.mockResolvedValue([]);
       mockCreateClient.mockReturnValue(mockClient);
 
       mockLoadUserConfig.mockResolvedValue(null);
@@ -642,17 +612,14 @@ describe("syncCommand", () => {
 
     it("should show dry run for update", async () => {
       const mockClient = createMockClient();
-      mockClient.batchLoad.mockResolvedValue({
-        found: [
-          {
-            tokenId: "test123456789012345",
-            owner: "old@example.com",
-            isAdmin: false,
-            createdAt: 1704067200,
-          },
-        ],
-        notFound: [],
-      });
+      mockClient.list.mockResolvedValue([
+        {
+          tokenId: "test123456789012345",
+          owner: "old@example.com",
+          isAdmin: false,
+          createdAt: 1704067200,
+        },
+      ]);
       mockCreateClient.mockReturnValue(mockClient);
 
       mockLoadUserConfig.mockResolvedValue(null);
@@ -694,17 +661,14 @@ describe("syncCommand", () => {
 
     it("should show dry run for revoke", async () => {
       const mockClient = createMockClient();
-      mockClient.batchLoad.mockResolvedValue({
-        found: [
-          {
-            tokenId: "test123456789012345",
-            owner: "test@example.com",
-            isAdmin: false,
-            createdAt: 1704067200,
-          },
-        ],
-        notFound: [],
-      });
+      mockClient.list.mockResolvedValue([
+        {
+          tokenId: "test123456789012345",
+          owner: "test@example.com",
+          isAdmin: false,
+          createdAt: 1704067200,
+        },
+      ]);
       mockCreateClient.mockReturnValue(mockClient);
 
       mockLoadUserConfig.mockResolvedValue(null);
@@ -740,18 +704,15 @@ describe("syncCommand", () => {
 
     it("should show dry run for restore", async () => {
       const mockClient = createMockClient();
-      mockClient.batchLoad.mockResolvedValue({
-        found: [
-          {
-            tokenId: "test123456789012345",
-            owner: "test@example.com",
-            isAdmin: false,
-            createdAt: 1704067200,
-            revokedAt: 1704067200,
-          },
-        ],
-        notFound: [],
-      });
+      mockClient.list.mockResolvedValue([
+        {
+          tokenId: "test123456789012345",
+          owner: "test@example.com",
+          isAdmin: false,
+          createdAt: 1704067200,
+          revokedAt: 1704067200,
+        },
+      ]);
       mockCreateClient.mockReturnValue(mockClient);
 
       mockLoadUserConfig.mockResolvedValue(null);
@@ -789,17 +750,14 @@ describe("syncCommand", () => {
   describe("update scenarios", () => {
     it("should update isAdmin field", async () => {
       const mockClient = createMockClient();
-      mockClient.batchLoad.mockResolvedValue({
-        found: [
-          {
-            tokenId: "test123456789012345",
-            owner: "test@example.com",
-            isAdmin: false,
-            createdAt: 1704067200,
-          },
-        ],
-        notFound: [],
-      });
+      mockClient.list.mockResolvedValue([
+        {
+          tokenId: "test123456789012345",
+          owner: "test@example.com",
+          isAdmin: false,
+          createdAt: 1704067200,
+        },
+      ]);
       mockClient.update.mockResolvedValue(undefined);
       mockCreateClient.mockReturnValue(mockClient);
 
@@ -843,17 +801,14 @@ describe("syncCommand", () => {
 
     it("should update expiresAt field", async () => {
       const mockClient = createMockClient();
-      mockClient.batchLoad.mockResolvedValue({
-        found: [
-          {
-            tokenId: "test123456789012345",
-            owner: "test@example.com",
-            isAdmin: false,
-            createdAt: 1704067200,
-          },
-        ],
-        notFound: [],
-      });
+      mockClient.list.mockResolvedValue([
+        {
+          tokenId: "test123456789012345",
+          owner: "test@example.com",
+          isAdmin: false,
+          createdAt: 1704067200,
+        },
+      ]);
       mockClient.update.mockResolvedValue(undefined);
       mockCreateClient.mockReturnValue(mockClient);
 
@@ -898,18 +853,15 @@ describe("syncCommand", () => {
 
     it("should update secretPhc field", async () => {
       const mockClient = createMockClient();
-      mockClient.batchLoad.mockResolvedValue({
-        found: [
-          {
-            tokenId: "test123456789012345",
-            owner: "test@example.com",
-            isAdmin: false,
-            createdAt: 1704067200,
-            secretPhc: "$scrypt$old",
-          },
-        ],
-        notFound: [],
-      });
+      mockClient.list.mockResolvedValue([
+        {
+          tokenId: "test123456789012345",
+          owner: "test@example.com",
+          isAdmin: false,
+          createdAt: 1704067200,
+          secretPhc: "$scrypt$old",
+        },
+      ]);
       mockClient.update.mockResolvedValue(undefined);
       mockCreateClient.mockReturnValue(mockClient);
 
@@ -954,17 +906,14 @@ describe("syncCommand", () => {
 
     it("should update multiple fields at once", async () => {
       const mockClient = createMockClient();
-      mockClient.batchLoad.mockResolvedValue({
-        found: [
-          {
-            tokenId: "test123456789012345",
-            owner: "old@example.com",
-            isAdmin: false,
-            createdAt: 1704067200,
-          },
-        ],
-        notFound: [],
-      });
+      mockClient.list.mockResolvedValue([
+        {
+          tokenId: "test123456789012345",
+          owner: "old@example.com",
+          isAdmin: false,
+          createdAt: 1704067200,
+        },
+      ]);
       mockClient.update.mockResolvedValue(undefined);
       mockCreateClient.mockReturnValue(mockClient);
 
@@ -1036,7 +985,7 @@ describe("syncCommand", () => {
 
     it("should throw on client errors", async () => {
       const mockClient = createMockClient();
-      mockClient.batchLoad.mockRejectedValue(new Error("API error"));
+      mockClient.list.mockRejectedValue(new Error("API error"));
       mockCreateClient.mockReturnValue(mockClient);
 
       mockLoadUserConfig.mockResolvedValue(null);
@@ -1058,6 +1007,213 @@ describe("syncCommand", () => {
           adminToken: "test-token",
         }),
       ).rejects.toThrow("API error");
+    });
+  });
+
+  describe("orphaned tokens", () => {
+    it("should revoke tokens that exist remotely but not in config", async () => {
+      const mockClient = createMockClient();
+      mockClient.list.mockResolvedValue([
+        {
+          tokenId: "orphan123456789012",
+          owner: "orphan@example.com",
+          isAdmin: false,
+          createdAt: 1704067200,
+        },
+        {
+          tokenId: "test123456789012345",
+          owner: "test@example.com",
+          isAdmin: false,
+          createdAt: 1704067200,
+        },
+      ]);
+      mockClient.revoke.mockResolvedValue(undefined);
+      mockCreateClient.mockReturnValue(mockClient);
+
+      mockLoadUserConfig.mockResolvedValue(null);
+      mockLoadSyncConfig.mockResolvedValue({
+        tokens: [
+          {
+            tokenId: "test123456789012345",
+            owner: "test@example.com",
+            isAdmin: false,
+            revoked: false,
+          },
+        ],
+      });
+
+      mockCompareTokens.mockReturnValue({
+        tokenId: "test123456789012345",
+        exists: true,
+        needsUpdate: false,
+        needsRevoke: false,
+        needsRestore: false,
+        changes: [],
+      });
+
+      await syncCommand({
+        config: "sync.yaml",
+        url: "https://test-api.example.com",
+        adminToken: "test-token",
+      });
+
+      expect(mockClient.revoke).toHaveBeenCalledWith("orphan123456789012", {
+        expiresAt: 1735603200,
+      });
+      expect(mockAddDurationToNow).toHaveBeenCalledWith("P30D");
+    });
+
+    it("should not revoke already-revoked orphaned tokens", async () => {
+      const mockClient = createMockClient();
+      mockClient.list.mockResolvedValue([
+        {
+          tokenId: "orphan123456789012",
+          owner: "orphan@example.com",
+          isAdmin: false,
+          createdAt: 1704067200,
+          revokedAt: 1704067200,
+        },
+        {
+          tokenId: "test123456789012345",
+          owner: "test@example.com",
+          isAdmin: false,
+          createdAt: 1704067200,
+        },
+      ]);
+      mockClient.revoke.mockResolvedValue(undefined);
+      mockCreateClient.mockReturnValue(mockClient);
+
+      mockLoadUserConfig.mockResolvedValue(null);
+      mockLoadSyncConfig.mockResolvedValue({
+        tokens: [
+          {
+            tokenId: "test123456789012345",
+            owner: "test@example.com",
+            isAdmin: false,
+            revoked: false,
+          },
+        ],
+      });
+
+      mockCompareTokens.mockReturnValue({
+        tokenId: "test123456789012345",
+        exists: true,
+        needsUpdate: false,
+        needsRevoke: false,
+        needsRestore: false,
+        changes: [],
+      });
+
+      await syncCommand({
+        config: "sync.yaml",
+        url: "https://test-api.example.com",
+        adminToken: "test-token",
+      });
+
+      expect(mockClient.revoke).not.toHaveBeenCalled();
+    });
+
+    it("should show dry run for orphaned token revocation", async () => {
+      const mockClient = createMockClient();
+      mockClient.list.mockResolvedValue([
+        {
+          tokenId: "orphan123456789012",
+          owner: "orphan@example.com",
+          isAdmin: false,
+          createdAt: 1704067200,
+        },
+        {
+          tokenId: "test123456789012345",
+          owner: "test@example.com",
+          isAdmin: false,
+          createdAt: 1704067200,
+        },
+      ]);
+      mockCreateClient.mockReturnValue(mockClient);
+
+      mockLoadUserConfig.mockResolvedValue(null);
+      mockLoadSyncConfig.mockResolvedValue({
+        tokens: [
+          {
+            tokenId: "test123456789012345",
+            owner: "test@example.com",
+            isAdmin: false,
+            revoked: false,
+          },
+        ],
+      });
+
+      mockCompareTokens.mockReturnValue({
+        tokenId: "test123456789012345",
+        exists: true,
+        needsUpdate: false,
+        needsRevoke: false,
+        needsRestore: false,
+        changes: [],
+      });
+
+      await syncCommand({
+        config: "sync.yaml",
+        url: "https://test-api.example.com",
+        adminToken: "test-token",
+        dryRun: true,
+      });
+
+      expect(mockClient.revoke).not.toHaveBeenCalled();
+      expect(mockAddDurationToNow).toHaveBeenCalledWith("P30D");
+    });
+
+    it("should revoke orphaned tokens with custom expiration", async () => {
+      const mockClient = createMockClient();
+      mockClient.list.mockResolvedValue([
+        {
+          tokenId: "orphan123456789012",
+          owner: "orphan@example.com",
+          isAdmin: false,
+          createdAt: 1704067200,
+        },
+        {
+          tokenId: "test123456789012345",
+          owner: "test@example.com",
+          isAdmin: false,
+          createdAt: 1704067200,
+        },
+      ]);
+      mockClient.revoke.mockResolvedValue(undefined);
+      mockCreateClient.mockReturnValue(mockClient);
+
+      mockLoadUserConfig.mockResolvedValue(null);
+      mockLoadSyncConfig.mockResolvedValue({
+        tokens: [
+          {
+            tokenId: "test123456789012345",
+            owner: "test@example.com",
+            isAdmin: false,
+            revoked: false,
+          },
+        ],
+      });
+
+      mockCompareTokens.mockReturnValue({
+        tokenId: "test123456789012345",
+        exists: true,
+        needsUpdate: false,
+        needsRevoke: false,
+        needsRestore: false,
+        changes: [],
+      });
+
+      await syncCommand({
+        config: "sync.yaml",
+        url: "https://test-api.example.com",
+        adminToken: "test-token",
+        orphanExpiresIn: "P7D",
+      });
+
+      expect(mockClient.revoke).toHaveBeenCalledWith("orphan123456789012", {
+        expiresAt: 1735603200,
+      });
+      expect(mockAddDurationToNow).toHaveBeenCalledWith("P7D");
     });
   });
 });
