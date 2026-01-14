@@ -1,5 +1,11 @@
 # @access-tokens/cli
 
+## 1.2.0
+
+### Minor Changes
+
+- 08cf6b7: Revoke removed tokens during sync
+
 ## 1.1.0
 
 ### Minor Changes
