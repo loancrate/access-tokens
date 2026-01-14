@@ -317,18 +317,22 @@ describe("CLI", () => {
         Sync tokens from YAML config to endpoints
 
         Options:
-          --config <path>        Path to sync config YAML file
-          --endpoint <name>      Target specific endpoint(s) (comma-separated or
-                                 multiple flags)
-          --url <url>            Direct endpoint URL (overrides config endpoints)
-          --admin-token <token>  Admin token (required with --url)
-          --auth-path <path>     Auth path (default: /auth)
-          --admin-path <path>    Admin path (default: /admin)
-          --dry-run              Show what would be done without making changes
-          --config-dir <path>    Config directory (default: ~/.access-tokens-cli)
-          --verbose              Verbose output
-          --quiet                Minimal output
-          -h, --help             display help for command
+          --config <path>                 Path to sync config YAML file
+          --endpoint <name>               Target specific endpoint(s) (comma-separated
+                                          or multiple flags)
+          --url <url>                     Direct endpoint URL (overrides config
+                                          endpoints)
+          --admin-token <token>           Admin token (required with --url)
+          --auth-path <path>              Auth path (default: /auth)
+          --admin-path <path>             Admin path (default: /admin)
+          --dry-run                       Show what would be done without making changes
+          --orphan-expires-in <duration>  Expiration for revoked orphan tokens (ISO 8601
+                                          duration, default: P30D)
+          --config-dir <path>             Config directory (default:
+                                          ~/.access-tokens-cli)
+          --verbose                       Verbose output
+          --quiet                         Minimal output
+          -h, --help                      display help for command
         "
       `);
     });
