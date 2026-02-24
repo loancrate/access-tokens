@@ -34,8 +34,8 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
-    "@aws-sdk/client-dynamodb": "^3.921.0",
-    "@aws-sdk/lib-dynamodb": "^3.921.0",
+    "@aws-sdk/client-dynamodb": "^3.996.0",
+    "@aws-sdk/lib-dynamodb": "^3.996.0",
     "@phc/format": "^1.0.0",
     "catch-unknown": "^2.0.0",
     "id62": "^2.0.0",
