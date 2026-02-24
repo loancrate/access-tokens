@@ -1,4 +1,4 @@
-import { jest } from "@jest/globals";
+import { vi } from "vitest";
 
 import { run } from "../cli";
 import * as generateModule from "../commands/generate";
@@ -12,7 +12,7 @@ import * as updateModule from "../commands/update";
 
 import { createTestStreams } from "./test-utils";
 
-jest.mock("../utils/logger");
+vi.mock("../utils/logger");
 
 describe("CLI", () => {
   beforeAll(() => {
@@ -342,7 +342,7 @@ describe("CLI", () => {
     it("should return exit code 0 for successful command", async () => {
       const streams = createTestStreams();
 
-      const generateSpy = jest
+      const generateSpy = vi
         .spyOn(generateModule, "generateCommand")
         .mockResolvedValue(undefined);
 
@@ -362,7 +362,7 @@ describe("CLI", () => {
       const streams = createTestStreams();
       const mockError = new Error("Something went wrong in command");
 
-      const generateSpy = jest
+      const generateSpy = vi
         .spyOn(generateModule, "generateCommand")
         .mockRejectedValue(mockError);
 
@@ -385,7 +385,7 @@ describe("CLI", () => {
     it("should handle non-Error thrown values", async () => {
       const streams = createTestStreams();
 
-      const generateSpy = jest
+      const generateSpy = vi
         .spyOn(generateModule, "generateCommand")
         .mockRejectedValue("string error");
 
@@ -435,7 +435,7 @@ describe("CLI", () => {
   describe("command action coverage", () => {
     it("should call list command action", async () => {
       const streams = createTestStreams();
-      const listSpy = jest
+      const listSpy = vi
         .spyOn(listModule, "listCommand")
         .mockResolvedValue(undefined);
 
@@ -451,7 +451,7 @@ describe("CLI", () => {
 
     it("should call issue command action", async () => {
       const streams = createTestStreams();
-      const issueSpy = jest
+      const issueSpy = vi
         .spyOn(issueModule, "issueCommand")
         .mockResolvedValue(undefined);
 
@@ -475,7 +475,7 @@ describe("CLI", () => {
 
     it("should call register command action", async () => {
       const streams = createTestStreams();
-      const registerSpy = jest
+      const registerSpy = vi
         .spyOn(registerModule, "registerCommand")
         .mockResolvedValue(undefined);
 
@@ -503,7 +503,7 @@ describe("CLI", () => {
 
     it("should call update command action", async () => {
       const streams = createTestStreams();
-      const updateSpy = jest
+      const updateSpy = vi
         .spyOn(updateModule, "updateCommand")
         .mockResolvedValue(undefined);
 
@@ -529,7 +529,7 @@ describe("CLI", () => {
 
     it("should call revoke command action", async () => {
       const streams = createTestStreams();
-      const revokeSpy = jest
+      const revokeSpy = vi
         .spyOn(revokeModule, "revokeCommand")
         .mockResolvedValue(undefined);
 
@@ -553,7 +553,7 @@ describe("CLI", () => {
 
     it("should call restore command action", async () => {
       const streams = createTestStreams();
-      const restoreSpy = jest
+      const restoreSpy = vi
         .spyOn(restoreModule, "restoreCommand")
         .mockResolvedValue(undefined);
 
@@ -577,7 +577,7 @@ describe("CLI", () => {
 
     it("should call sync command action", async () => {
       const streams = createTestStreams();
-      const syncSpy = jest
+      const syncSpy = vi
         .spyOn(syncModule, "syncCommand")
         .mockResolvedValue(undefined);
 

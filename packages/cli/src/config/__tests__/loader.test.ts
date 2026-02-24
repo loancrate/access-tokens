@@ -1,17 +1,20 @@
-import { jest } from "@jest/globals";
+import { vi } from "vitest";
 
-const mockPathExists = jest.fn<(path: string) => Promise<boolean>>();
-const mockReadFile =
-  jest.fn<(path: string, encoding: string) => Promise<string>>();
+const { mockPathExists, mockReadFile } = vi.hoisted(() => ({
+  mockPathExists: vi.fn<(path: string) => Promise<boolean>>(),
+  mockReadFile: vi.fn<(path: string, encoding: string) => Promise<string>>(),
+}));
 
-jest.mock("fs-extra", () => ({
+vi.mock("fs-extra", () => ({
   pathExists: mockPathExists,
   readFile: mockReadFile,
 }));
 
-const mockHomedir = jest.fn<() => string>();
+const { mockHomedir } = vi.hoisted(() => ({
+  mockHomedir: vi.fn<() => string>(),
+}));
 
-jest.mock("os", () => ({
+vi.mock("os", () => ({
   homedir: mockHomedir,
 }));
 
@@ -22,7 +25,7 @@ describe("ConfigLoader", () => {
   let loader: ConfigLoader;
 
   beforeEach(() => {
-    jest.clearAllMocks();
+    vi.clearAllMocks();
     loader = new ConfigLoader("/test/config/dir");
   });
 

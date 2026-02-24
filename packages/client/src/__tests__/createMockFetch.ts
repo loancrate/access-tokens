@@ -1,4 +1,4 @@
-import { jest } from "@jest/globals";
+import { vi } from "vitest";
 
 import { Fetch } from "../fetchRetryPolicy";
 
@@ -10,7 +10,7 @@ type MockFetchCall = {
 };
 
 type CreateMockFetchReturn = {
-  mockFetch: ReturnType<typeof jest.fn<Fetch>>;
+  mockFetch: ReturnType<typeof vi.fn<Fetch>>;
   addResponse: (response: MockResponse) => void;
   getCalls: () => MockFetchCall[];
   reset: () => void;
@@ -21,7 +21,7 @@ export function createMockFetch(): CreateMockFetchReturn {
   const responses: MockResponse[] = [];
   let currentResponseIndex = 0;
 
-  const mockFetch = jest
+  const mockFetch = vi
     .fn<Fetch>()
     .mockImplementation(
       async (input: string | URL | Request, init?: RequestInit) => {

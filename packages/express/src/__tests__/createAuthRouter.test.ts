@@ -1,6 +1,5 @@
 /* eslint-disable @typescript-eslint/unbound-method */
 
-import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import express from "express";
 import { UnsecuredJWT } from "jose";
 import request from "supertest";
@@ -38,7 +37,7 @@ describe("createAuthRouter", () => {
 
     app.use(httpErrorMiddleware);
 
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   describe("POST /auth/token", () => {
@@ -62,6 +61,7 @@ describe("createAuthRouter", () => {
       expect(response.body).toStrictEqual({
         error: {
           message: "Invalid request body",
+          // eslint-disable-next-line @typescript-eslint/no-unsafe-assignment
           details: expect.any(String),
         },
       });

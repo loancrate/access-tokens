@@ -1,6 +1,5 @@
 /* eslint-disable @typescript-eslint/no-unsafe-member-access */
 
-import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import express from "express";
 import { errors } from "jose";
 import request from "supertest";
@@ -35,7 +34,7 @@ describe("createRequireJwt", () => {
 
     app.use(httpErrorMiddleware);
 
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   it("should return 401 when no Authorization header", async () => {

@@ -1,24 +1,24 @@
 import { Readable, Writable } from "stream";
 
-import { jest } from "@jest/globals";
+import { type Mocked, vi } from "vitest";
 
 import type { AccessTokensClient } from "@access-tokens/client";
 
-export function createMockClient(): jest.Mocked<AccessTokensClient> {
+export function createMockClient(): Mocked<AccessTokensClient> {
   // Creating a partial mock of AccessTokensClient interface. The object
   // literal only includes method mocks, not all client properties. Double
   // cast through 'unknown' is necessary because jest.Mocked wraps the type
   // incompletely.
   // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
   return {
-    list: jest.fn(),
-    batchLoad: jest.fn(),
-    issue: jest.fn(),
-    register: jest.fn(),
-    update: jest.fn(),
-    revoke: jest.fn(),
-    restore: jest.fn(),
-  } as unknown as jest.Mocked<AccessTokensClient>;
+    list: vi.fn(),
+    batchLoad: vi.fn(),
+    issue: vi.fn(),
+    register: vi.fn(),
+    update: vi.fn(),
+    revoke: vi.fn(),
+    restore: vi.fn(),
+  } as unknown as Mocked<AccessTokensClient>;
 }
 
 export function createTestStreams(): {

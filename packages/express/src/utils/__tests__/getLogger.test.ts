@@ -1,4 +1,3 @@
-import { jest } from "@jest/globals";
 import pino from "pino";
 
 import { getLogger } from "../getLogger";
@@ -40,7 +39,7 @@ describe("getLogger", () => {
 
   it("should create child logger with request metadata", () => {
     const parentLogger = pino();
-    const childSpy = jest.spyOn(parentLogger, "child");
+    const childSpy = vi.spyOn(parentLogger, "child");
 
     getLogger(mockRequest, parentLogger);
 
@@ -55,7 +54,7 @@ describe("getLogger", () => {
 
   it("should use provided parent logger over default", () => {
     const explicitParent = pino({ level: "trace" });
-    const childSpy = jest.spyOn(explicitParent, "child");
+    const childSpy = vi.spyOn(explicitParent, "child");
 
     getLogger(mockRequest, explicitParent);
 

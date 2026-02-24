@@ -1,6 +1,5 @@
 import assert from "assert";
 
-import { jest } from "@jest/globals";
 import { DateTime } from "luxon";
 
 import { addDurationToNow } from "../duration-parser";
@@ -12,11 +11,11 @@ describe("duration-parser", () => {
       // December 1, 2025 00:00:00 UTC = 1733011200 seconds
       const fixedTime = DateTime.fromSeconds(1733011200, { zone: "utc" });
       assert(fixedTime.isValid, "Fixed time should be valid");
-      jest.spyOn(DateTime, "now").mockReturnValue(fixedTime);
+      vi.spyOn(DateTime, "now").mockReturnValue(fixedTime);
     });
 
     afterEach(() => {
-      jest.restoreAllMocks();
+      vi.restoreAllMocks();
     });
 
     it("should parse days duration (P30D)", () => {

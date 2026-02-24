@@ -29,8 +29,8 @@
     "clean": "rm -rf dist *.tsbuildinfo coverage *-junit.xml",
     "lint": "eslint src",
     "prepack": "cpy ../../LICENSE .",
-    "test": "jest",
-    "test-int": "jest --config=jest-int.config.js",
+    "test": "vitest run",
+    "test-int": "vitest run --config vitest-int.config.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
@@ -43,15 +43,10 @@
     "zod": "^4.1.12"
   },
   "devDependencies": {
-    "@access-tokens/jest-config": "workspace:*",
-    "@types/jest": "^30.0.0",
     "@types/node": "^24.9.2",
     "@types/phc__format": "^1.0.1",
     "aws-sdk-client-mock": "^4.1.0",
-    "eslint": "^9.38.0",
-    "jest": "^30.2.0",
-    "jest-junit": "^16.0.0",
-    "ts-jest": "^29.4.5",
+    "eslint": "^10.0.2",
     "typescript": "^5.9.3"
   },
   "engines": {

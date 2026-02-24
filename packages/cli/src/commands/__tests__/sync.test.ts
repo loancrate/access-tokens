@@ -1,13 +1,13 @@
 /* eslint-disable @typescript-eslint/unbound-method */
 
-jest.mock("../../config/loader");
-jest.mock("../../utils/client-factory");
-jest.mock("../../utils/diff");
-jest.mock("../../utils/duration-parser");
-jest.mock("../../utils/logger");
-jest.mock("../../utils/permissions");
+import { vi } from "vitest";
 
-import { jest } from "@jest/globals";
+vi.mock("../../config/loader");
+vi.mock("../../utils/client-factory");
+vi.mock("../../utils/diff");
+vi.mock("../../utils/duration-parser");
+vi.mock("../../utils/logger");
+vi.mock("../../utils/permissions");
 
 import {
   createMockClient,
@@ -21,26 +21,26 @@ import * as durationParser from "../../utils/duration-parser";
 import * as permissions from "../../utils/permissions";
 import { syncCommand } from "../sync";
 
-const mockCreateClient = jest.mocked(clientFactory.createClient);
-const mockLoadUserConfig = jest.spyOn(ConfigLoader.prototype, "loadUserConfig");
-const mockLoadSyncConfig = jest.spyOn(ConfigLoader.prototype, "loadSyncConfig");
-const mockMergeConfigs = jest.spyOn(ConfigLoader.prototype, "mergeConfigs");
-const mockResolveEndpointConfig = jest.spyOn(
+const mockCreateClient = vi.mocked(clientFactory.createClient);
+const mockLoadUserConfig = vi.spyOn(ConfigLoader.prototype, "loadUserConfig");
+const mockLoadSyncConfig = vi.spyOn(ConfigLoader.prototype, "loadSyncConfig");
+const mockMergeConfigs = vi.spyOn(ConfigLoader.prototype, "mergeConfigs");
+const mockResolveEndpointConfig = vi.spyOn(
   ConfigLoader.prototype,
   "resolveEndpointConfig",
 );
-const mockResolveDirectEndpointConfig = jest.spyOn(
+const mockResolveDirectEndpointConfig = vi.spyOn(
   ConfigLoader.prototype,
   "resolveDirectEndpointConfig",
 );
-const mockCheckFilePermissions = jest.mocked(permissions.checkFilePermissions);
-const mockCompareTokens = jest.mocked(diff.compareTokens);
-const mockAddDurationToNow = jest.mocked(durationParser.addDurationToNow);
+const mockCheckFilePermissions = vi.mocked(permissions.checkFilePermissions);
+const mockCompareTokens = vi.mocked(diff.compareTokens);
+const mockAddDurationToNow = vi.mocked(durationParser.addDurationToNow);
 
 beforeEach(() => {
-  jest.clearAllMocks();
+  vi.clearAllMocks();
   // Mock Date.now to December 1, 2025 so expiresAt timestamps in tests are in the future
-  jest.spyOn(Date, "now").mockReturnValue(1733011200000);
+  vi.spyOn(Date, "now").mockReturnValue(1733011200000);
   // Mock addDurationToNow to return a timestamp 30 days from now
   // December 1, 2025 + 30 days = December 31, 2025 00:00:00 UTC = 1735603200 seconds
   mockAddDurationToNow.mockReturnValue(1735603200);

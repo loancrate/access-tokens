@@ -2,14 +2,14 @@
 
 import assert from "assert";
 
-import { jest } from "@jest/globals";
+import { vi } from "vitest";
 
 import { AccessTokensClient, isApiError } from "../index";
 
 import { createMockFetch } from "./createMockFetch";
 import { MockResponse } from "./MockResponse";
 
-jest.useFakeTimers();
+vi.useFakeTimers();
 
 describe("AccessTokensClient", () => {
   const { mockFetch, addResponse, getCalls, reset } = createMockFetch();
@@ -17,7 +17,7 @@ describe("AccessTokensClient", () => {
 
   beforeEach(() => {
     reset();
-    jest.clearAllTimers();
+    vi.clearAllTimers();
     client = new AccessTokensClient({
       fetch: mockFetch,
       endpoint: "https://api.example.com",
@@ -106,7 +106,7 @@ describe("AccessTokensClient", () => {
       const token1 = await client["authenticate"]();
       expect(token1).toBe("token-1");
 
-      jest.advanceTimersByTime(35 * 1000);
+      vi.advanceTimersByTime(35 * 1000);
 
       const token2 = await client["authenticate"]();
       expect(token2).toBe("token-2");

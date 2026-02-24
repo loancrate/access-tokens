@@ -1,24 +1,23 @@
-import { describe, expect, it, jest } from "@jest/globals";
-
 import type { RunParameters } from "../cli";
 
-const mockRun = jest.fn<(args: RunParameters) => Promise<number>>();
+const { mockRun } = vi.hoisted(() => ({
+  mockRun: vi.fn<(args: RunParameters) => Promise<number>>(),
+}));
+
+vi.mock("../cli", () => ({ run: mockRun }));
 
 describe("main entry point", () => {
   beforeEach(() => {
-    jest.resetModules();
-    jest.mock("../cli", () => ({
-      run: mockRun,
-    }));
+    vi.resetModules();
   });
 
   it("should call run and exit with success code", async () => {
     mockRun.mockResolvedValue(0);
 
-    const consoleErrorSpy = jest
+    const consoleErrorSpy = vi
       .spyOn(console, "error")
       .mockImplementation(() => undefined);
-    const processExitSpy = jest
+    const processExitSpy = vi
       .spyOn(process, "exit")
       // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
       .mockImplementation(() => undefined as never);
@@ -29,13 +28,17 @@ describe("main entry point", () => {
     // Wait for async operations to complete
     await new Promise((resolve) => setImmediate(resolve));
 
-    expect(mockRun).toHaveBeenCalledWith({
-      argv: expect.any(Array),
-      env: expect.any(Object),
-      stdin: expect.any(Object),
-      stdout: expect.any(Object),
-      stderr: expect.any(Object),
-    });
+    expect(mockRun).toHaveBeenCalledWith(
+      /* eslint-disable @typescript-eslint/no-unsafe-assignment */
+      {
+        argv: expect.any(Array),
+        env: expect.any(Object),
+        stdin: expect.any(Object),
+        stdout: expect.any(Object),
+        stderr: expect.any(Object),
+      },
+      /* eslint-enable @typescript-eslint/no-unsafe-assignment */
+    );
     expect(processExitSpy).toHaveBeenCalledWith(0);
     expect(consoleErrorSpy).not.toHaveBeenCalled();
 
@@ -47,10 +50,10 @@ describe("main entry point", () => {
     const mockError = new Error("CLI execution failed");
     mockRun.mockRejectedValue(mockError);
 
-    const consoleErrorSpy = jest
+    const consoleErrorSpy = vi
       .spyOn(console, "error")
       .mockImplementation(() => undefined);
-    const processExitSpy = jest
+    const processExitSpy = vi
       .spyOn(process, "exit")
       // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
       .mockImplementation(() => undefined as never);

@@ -2,7 +2,6 @@
 /* eslint-disable @typescript-eslint/require-await */
 /* eslint-disable @typescript-eslint/unbound-method */
 
-import { beforeEach, describe, expect, it, jest } from "@jest/globals";
 import express from "express";
 import request from "supertest";
 
@@ -41,7 +40,7 @@ describe("createAdminTokensRouter", () => {
 
     app.use(httpErrorMiddleware);
 
-    jest.clearAllMocks();
+    vi.clearAllMocks();
   });
 
   describe("GET /admin/tokens", () => {
@@ -123,7 +122,7 @@ describe("createAdminTokensRouter", () => {
         expect.objectContaining({ includeSecretPhc: true }),
       );
 
-      jest.clearAllMocks();
+      vi.clearAllMocks();
       mockPat.list.mockReturnValue((async function* () {})());
 
       await request(app)
@@ -145,7 +144,7 @@ describe("createAdminTokensRouter", () => {
         expect.objectContaining({ includeSecretPhc: false }),
       );
 
-      jest.clearAllMocks();
+      vi.clearAllMocks();
       mockPat.list.mockReturnValue((async function* () {})());
 
       await request(app)

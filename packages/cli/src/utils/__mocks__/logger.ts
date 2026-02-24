@@ -1,11 +1,13 @@
-import { jest } from "@jest/globals";
+import { type Mock, vi } from "vitest";
 
-export const Logger: jest.Mock = jest.fn(() => ({
-  info: jest.fn(),
-  error: jest.fn(),
-  warn: jest.fn(),
-  success: jest.fn(),
-  verbose: jest.fn(),
-  json: jest.fn(),
-  dryRun: jest.fn(),
-}));
+export const Logger: Mock = vi.fn(function () {
+  return {
+    info: vi.fn(),
+    error: vi.fn(),
+    warn: vi.fn(),
+    success: vi.fn(),
+    verbose: vi.fn(),
+    json: vi.fn(),
+    dryRun: vi.fn(),
+  };
+});

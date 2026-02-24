@@ -1,5 +1,5 @@
 const tseslint = require("typescript-eslint");
-const importPlugin = require("eslint-plugin-import");
+const importPlugin = require("eslint-plugin-import-x");
 
 /**
  * Shared ESLint configuration factory for all packages in the monorepo.
@@ -24,8 +24,8 @@ module.exports = function createConfig(tsconfigRootDir) {
         import: importPlugin,
       },
       settings: {
-        "import/internal-regex": "^@access-tokens/",
-        "import/resolver": {
+        "import-x/internal-regex": "^@access-tokens/",
+        "import-x/resolver": {
           typescript: {
             project: "./tsconfig.json",
           },
