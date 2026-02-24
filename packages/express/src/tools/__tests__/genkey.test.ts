@@ -1,12 +1,12 @@
-import { describe, expect, it, jest } from "@jest/globals";
-
 import type { KeySet } from "../../buildSignerVerifier";
 import type { AlgorithmType } from "../../generateKeySet";
 
-const mockGenerateKeySet =
-  jest.fn<(kid: string, algorithm?: AlgorithmType) => Promise<KeySet>>();
+const { mockGenerateKeySet } = vi.hoisted(() => ({
+  mockGenerateKeySet:
+    vi.fn<(kid: string, algorithm?: AlgorithmType) => Promise<KeySet>>(),
+}));
 
-jest.unstable_mockModule("../../generateKeySet.js", () => ({
+vi.mock("../../generateKeySet.js", () => ({
   generateKeySet: mockGenerateKeySet,
 }));
 
@@ -39,10 +39,10 @@ describe("genkey tool", () => {
 
     mockGenerateKeySet.mockResolvedValue(mockKeySet);
 
-    const consoleLogSpy = jest
+    const consoleLogSpy = vi
       .spyOn(console, "log")
       .mockImplementation(() => undefined);
-    const processExitSpy = jest
+    const processExitSpy = vi
       .spyOn(process, "exit")
       // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
       .mockImplementation(() => undefined as never);
@@ -68,17 +68,17 @@ describe("genkey tool", () => {
     mockGenerateKeySet.mockClear();
     mockGenerateKeySet.mockRejectedValue(mockError);
 
-    const consoleErrorSpy = jest
+    const consoleErrorSpy = vi
       .spyOn(console, "error")
       .mockImplementation(() => undefined);
-    const processExitSpy = jest
+    const processExitSpy = vi
       .spyOn(process, "exit")
       // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
       .mockImplementation(() => undefined as never);
 
-    // Use dynamic import with timestamp to force re-evaluation
-    const modulePath = `../genkey?t=${Date.now()}`;
-    await import(modulePath);
+    // Reset module cache to force re-evaluation of the genkey module
+    vi.resetModules();
+    await import("../genkey");
 
     // Wait for async operations to complete
     await new Promise((resolve) => setImmediate(resolve));

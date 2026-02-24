@@ -31,8 +31,8 @@
     "genkey": "tsx src/tools/genkey.ts",
     "lint": "eslint src",
     "prepack": "cpy ../../LICENSE .",
-    "test": "node --experimental-vm-modules node_modules/jest/bin/jest.js",
-    "test-smoke": "jest --config jest-smoke.config.js",
+    "test": "vitest run",
+    "test-smoke": "vitest run --config vitest-smoke.config.ts",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
@@ -46,20 +46,14 @@
     "zod": "^4.1.12"
   },
   "devDependencies": {
-    "@access-tokens/jest-config": "workspace:*",
-    "@jest/globals": "^30.2.0",
     "@types/express": "^5.0.5",
     "@types/http-errors": "^2.0.5",
-    "@types/jest": "^30.0.0",
     "@types/node": "^24.9.2",
     "@types/supertest": "^6.0.3",
     "esbuild": "^0.25.12",
-    "eslint": "^9.38.0",
+    "eslint": "^10.0.2",
     "express": "^5.1.0",
-    "jest": "^30.2.0",
-    "jest-junit": "^16.0.0",
     "supertest": "^7.1.4",
-    "ts-jest": "^29.4.5",
     "tsx": "^4.20.6",
     "typescript": "^5.9.3"
   },

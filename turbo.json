@@ -15,12 +15,12 @@
     "test": {
       "dependsOn": ["^build"],
       "outputs": ["coverage/**", "*-junit.xml"],
-      "inputs": ["src/**", "jest.config.ts"]
+      "inputs": ["src/**", "vitest.config.ts"]
     },
     "test-int": {
       "dependsOn": ["^build"],
       "outputs": ["coverage/**", "*-int-junit.xml"],
-      "inputs": ["src/**", "jest-int.config.ts"],
+      "inputs": ["src/**", "vitest-int.config.ts"],
       "cache": false
     },
     "test-smoke": {

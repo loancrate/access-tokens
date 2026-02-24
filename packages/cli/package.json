@@ -32,7 +32,7 @@
     "clean": "rm -rf dist *.tsbuildinfo coverage *-junit.xml",
     "lint": "eslint src",
     "prepack": "cpy ../../LICENSE .",
-    "test": "jest",
+    "test": "vitest run",
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
@@ -46,16 +46,10 @@
     "zod": "^4.1.12"
   },
   "devDependencies": {
-    "@access-tokens/jest-config": "workspace:*",
-    "@jest/globals": "^30.2.0",
     "@types/fs-extra": "^11.0.4",
-    "@types/jest": "^30.0.0",
     "@types/luxon": "^3.7.1",
     "@types/node": "^24.9.2",
-    "eslint": "^9.38.0",
-    "jest": "^30.2.0",
-    "jest-junit": "^16.0.0",
-    "ts-jest": "^29.4.5",
+    "eslint": "^10.0.2",
     "typescript": "^5.9.3"
   },
   "engines": {

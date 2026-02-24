@@ -1,24 +1,24 @@
-jest.mock("@access-tokens/core");
-jest.mock("../../utils/logger");
+import { type MockedObject, vi } from "vitest";
 
-import { jest } from "@jest/globals";
+vi.mock("@access-tokens/core");
+vi.mock("../../utils/logger");
 
 import { DynamoDBPat, type GenerateResult } from "@access-tokens/core";
 
 import { generateCommand } from "../generate";
 
-const mockGenerate = jest.fn<() => Promise<GenerateResult>>();
-const MockedDynamoDBPat = jest.mocked(DynamoDBPat);
+const mockGenerate = vi.fn<() => Promise<GenerateResult>>();
+const MockedDynamoDBPat = vi.mocked(DynamoDBPat);
 
 beforeEach(() => {
-  jest.clearAllMocks();
-  MockedDynamoDBPat.mockImplementation(() => {
+  vi.clearAllMocks();
+  MockedDynamoDBPat.mockImplementation(function () {
     const partial: Partial<DynamoDBPat> = {
       generate: mockGenerate,
     };
     // Only the 'generate' method is needed for these tests
     // eslint-disable-next-line @typescript-eslint/consistent-type-assertions
-    return partial as jest.MockedObject<DynamoDBPat>;
+    return partial as MockedObject<DynamoDBPat>;
   });
 });
 

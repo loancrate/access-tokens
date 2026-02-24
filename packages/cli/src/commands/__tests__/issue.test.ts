@@ -1,10 +1,10 @@
 /* eslint-disable @typescript-eslint/unbound-method */
 
-jest.mock("../../config/loader");
-jest.mock("../../utils/client-factory");
-jest.mock("../../utils/logger");
+import { vi } from "vitest";
 
-import { jest } from "@jest/globals";
+vi.mock("../../config/loader");
+vi.mock("../../utils/client-factory");
+vi.mock("../../utils/logger");
 
 import {
   createMockClient,
@@ -15,17 +15,17 @@ import { ConfigLoader } from "../../config/loader";
 import * as clientFactory from "../../utils/client-factory";
 import { issueCommand } from "../issue";
 
-const mockCreateClient = jest.spyOn(clientFactory, "createClient");
-const mockLoadUserConfig = jest.spyOn(ConfigLoader.prototype, "loadUserConfig");
-const mockResolveEndpointConfig = jest.spyOn(
+const mockCreateClient = vi.spyOn(clientFactory, "createClient");
+const mockLoadUserConfig = vi.spyOn(ConfigLoader.prototype, "loadUserConfig");
+const mockResolveEndpointConfig = vi.spyOn(
   ConfigLoader.prototype,
   "resolveEndpointConfig",
 );
-const mockResolveDirectEndpointConfig = jest.spyOn(
+const mockResolveDirectEndpointConfig = vi.spyOn(
   ConfigLoader.prototype,
   "resolveDirectEndpointConfig",
 );
-const mockResolveEndpointFromOptions = jest.spyOn(
+const mockResolveEndpointFromOptions = vi.spyOn(
   ConfigLoader.prototype,
   "resolveEndpointFromOptions",
 );
@@ -36,7 +36,7 @@ export const mockIssueResult = {
 };
 
 beforeEach(() => {
-  jest.clearAllMocks();
+  vi.clearAllMocks();
   mockResolveDirectEndpointConfig.mockReturnValue(mockConfig);
   mockResolveEndpointConfig.mockReturnValue(mockConfig);
   mockResolveEndpointFromOptions.mockResolvedValue(mockConfig);

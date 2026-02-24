@@ -3,21 +3,44 @@ set -e
 
 echo "Merging coverage reports..."
 
-mkdir -p coverage/packages
+node -e '
+const fs = require("fs");
+const path = require("path");
+const libCoverage = require("istanbul-lib-coverage");
+const libReport = require("istanbul-lib-report");
+const reports = require("istanbul-reports");
 
-for package in packages/*; do
-  if [ -d "$package/coverage" ]; then
-    ./node_modules/.bin/nyc merge "$package/coverage" "coverage/packages/$(basename "$package").json"
-  fi
-done
+// Merge all Istanbul JSON coverage files from all packages
+const map = libCoverage.createCoverageMap({});
+const packagesDir = path.resolve("packages");
 
-echo "Combining all package coverage..."
-./node_modules/.bin/nyc merge coverage/packages coverage/combined/coverage.json
+for (const pkg of fs.readdirSync(packagesDir)) {
+  const coverageDir = path.join(packagesDir, pkg, "coverage");
+  if (!fs.existsSync(coverageDir)) continue;
 
-echo "Generating HTML report..."
-./node_modules/.bin/nyc report \
-  --reporter=html \
-  --report-dir=coverage/html \
-  --temp-dir=coverage/combined
+  for (const file of fs.readdirSync(coverageDir)) {
+    if (!file.endsWith(".json")) continue;
+    const filePath = path.join(coverageDir, file);
+    try {
+      const data = JSON.parse(fs.readFileSync(filePath, "utf-8"));
+      map.merge(data);
+    } catch {}
+  }
+}
 
-echo "✓ Coverage reports merged successfully!"
+const context = libReport.createContext({
+  dir: "coverage",
+  coverageMap: map,
+});
+
+// Terminal summary
+reports.create("text").execute(context);
+
+// Browsable HTML report
+reports.create("html", { subdir: "html" }).execute(context);
+
+// Machine-readable JSON
+reports.create("json", { file: "coverage-merged.json" }).execute(context);
+
+console.log("\nCoverage reports written to coverage/");
+'

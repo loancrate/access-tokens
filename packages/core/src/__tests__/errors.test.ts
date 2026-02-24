@@ -14,8 +14,8 @@ import { mockClient } from "aws-sdk-client-mock";
 import { DynamoDBPat, MAX_OWNER_LENGTH } from "../index";
 
 // Mock timers/promises to avoid actual delays during batchLoad tests
-jest.mock("timers/promises", () => ({
-  setTimeout: jest.fn(() => Promise.resolve()),
+vi.mock("timers/promises", () => ({
+  setTimeout: vi.fn(() => Promise.resolve()),
 }));
 
 describe("Error handling", () => {

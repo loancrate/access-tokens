@@ -13,8 +13,6 @@
  * When it runs: After build, before full test suite (fail fast on critical issues)
  */
 
-import { describe, expect, it } from "@jest/globals";
-
 // Import from built output, not source
 import { buildSignerVerifier, generateKeySet } from "../../dist/index.js";
 

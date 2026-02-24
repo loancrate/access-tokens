@@ -1,20 +1,22 @@
-import { jest } from "@jest/globals";
 import type { Stats } from "fs-extra";
+import type { MockInstance } from "vitest";
 
-const mockStat = jest.fn<(path: string) => Promise<Partial<Stats>>>();
+const { mockStat } = vi.hoisted(() => ({
+  mockStat: vi.fn<(path: string) => Promise<Partial<Stats>>>(),
+}));
 
-jest.mock("fs-extra", () => ({
+vi.mock("fs-extra", () => ({
   stat: mockStat,
 }));
 
 import { checkFilePermissions } from "../permissions";
 
 describe("checkFilePermissions", () => {
-  let consoleWarnSpy: jest.Spied<typeof console.warn>;
+  let consoleWarnSpy: MockInstance;
 
   beforeEach(() => {
-    consoleWarnSpy = jest.spyOn(console, "warn").mockImplementation(() => {});
-    jest.clearAllMocks();
+    consoleWarnSpy = vi.spyOn(console, "warn").mockImplementation(() => {});
+    vi.clearAllMocks();
   });
 
   afterEach(() => {
