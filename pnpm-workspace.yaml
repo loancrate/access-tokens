@@ -1,6 +1,10 @@
 packages:
   - packages/*
 
+overrides:
+  fast-xml-parser: 5.3.8
+  minimatch: 10.2.3
+
 onlyBuiltDependencies:
   - esbuild
   - unrs-resolver
