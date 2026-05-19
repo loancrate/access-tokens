@@ -27,6 +27,7 @@ export function createMockPat(): Mocked<DynamoDBPat> {
   return {
     list: vi.fn(),
     batchLoad: vi.fn(),
+    get: vi.fn(),
     generate: vi.fn(),
     register: vi.fn(),
     issue: vi.fn(),

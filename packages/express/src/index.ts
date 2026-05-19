@@ -23,6 +23,7 @@ export * from "./buildSignerVerifier";
 export * from "./createAdminTokensRouter";
 export * from "./createAuthRouter";
 export * from "./createRequireAdmin";
+export * from "./createRequireActiveAdminToken";
 export * from "./createRequireJwt";
 export * from "./createRequireRole";
 export * from "./generateKeySet";

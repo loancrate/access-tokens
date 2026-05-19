@@ -228,6 +228,17 @@ Restores a previously revoked token.
 await pat.restore("34NwRzvnBbgI3uedkrQ3Q");
 ```
 
+#### `get(tokenId: string): Promise<PublicTokenRecord | null>`
+
+Loads a token record without exposing its stored secret hash. This uses a
+strongly consistent read so authorization checks see recent token state changes.
+
+**Example:**
+
+```typescript
+const token = await pat.get("34NwRzvnBbgI3uedkrQ3Q");
+```
+
 #### `list(options?): AsyncGenerator<PublicTokenRecord>`
 
 Lists all tokens with optional filtering. Returns an async generator that yields tokens.

@@ -12,6 +12,7 @@ import {
 } from "@access-tokens/core";
 
 import { JwtSignerVerifier } from "./buildSignerVerifier";
+import { createRequireActiveAdminToken } from "./createRequireActiveAdminToken";
 import { createRequireAdmin } from "./createRequireAdmin";
 import { createRequireJwt, ExtendedJwtPayload } from "./createRequireJwt";
 import { getLogger } from "./utils/getLogger";
@@ -108,11 +109,16 @@ export function createAdminTokensRouter({
 
   const requireJwt = createRequireJwt({ signerVerifier, logger: parentLogger });
   const requireAdmin = createRequireAdmin({ logger: parentLogger });
+  const requireActiveAdminToken = createRequireActiveAdminToken({
+    pat,
+    logger: parentLogger,
+  });
 
   router.get(
     "/tokens",
     requireJwt,
     requireAdmin,
+    requireActiveAdminToken,
     asyncHandler(async (req, res) => {
       const queryParsed = getTokensQuerySchema.safeParse(req.query);
       if (!queryParsed.success) {
@@ -158,6 +164,7 @@ export function createAdminTokensRouter({
     "/tokens/batch",
     requireJwt,
     requireAdmin,
+    requireActiveAdminToken,
     express.json(),
     asyncHandler(async (req, res) => {
       const body = batchGetTokensBodySchema.safeParse(req.body);
@@ -179,6 +186,7 @@ export function createAdminTokensRouter({
     "/tokens",
     requireJwt,
     requireAdmin,
+    requireActiveAdminToken,
     express.json(),
     asyncHandler(async (req, res) => {
       const logger = getLogger(req, parentLogger);
@@ -201,6 +209,7 @@ export function createAdminTokensRouter({
     "/tokens/:tokenId",
     requireJwt,
     requireAdmin,
+    requireActiveAdminToken,
     express.json(),
     asyncHandler(async (req, res) => {
       const logger = getLogger(req, parentLogger);
@@ -227,6 +236,7 @@ export function createAdminTokensRouter({
     "/tokens/:tokenId",
     requireJwt,
     requireAdmin,
+    requireActiveAdminToken,
     express.json(),
     asyncHandler(async (req, res) => {
       const logger = getLogger(req, parentLogger);
@@ -250,6 +260,7 @@ export function createAdminTokensRouter({
     "/tokens/:tokenId/revoke",
     requireJwt,
     requireAdmin,
+    requireActiveAdminToken,
     express.json(),
     asyncHandler(async (req, res) => {
       const logger = getLogger(req, parentLogger);
@@ -273,6 +284,7 @@ export function createAdminTokensRouter({
     "/tokens/:tokenId/restore",
     requireJwt,
     requireAdmin,
+    requireActiveAdminToken,
     asyncHandler(async (req, res) => {
       const logger = getLogger(req, parentLogger);
       const { tokenId } = req.params;

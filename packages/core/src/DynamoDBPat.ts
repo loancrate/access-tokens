@@ -62,6 +62,10 @@ export type BatchLoadOptions = {
   includeSecretPhc?: boolean;
 };
 
+type LoadOptions = {
+  consistentRead?: boolean;
+};
+
 export type BatchLoadResult = {
   found: PublicTokenRecord[];
   notFound: string[];
@@ -383,6 +387,23 @@ export class DynamoDBPat {
     }
 
     return { found, notFound };
+  }
+
+  /**
+   * Load a single token record by ID without exposing the stored secret hash.
+   * Uses a strongly consistent read so current-state authorization checks see
+   * recent token revocation, expiration, or admin status changes.
+   *
+   * Intended for authorization re-checks. Use `batchLoad()` with
+   * `includeSecretPhc` if the stored secret hash is required.
+   *
+   * @param tokenId The ID of the token to load.
+   * @returns The token record if found, otherwise null.
+   * @throws If the loaded DynamoDB item does not match the token record schema.
+   */
+  async get(tokenId: string): Promise<PublicTokenRecord | null> {
+    const record = await this.load(tokenId, { consistentRead: true });
+    return record ? omitSecretPhc(record) : null;
   }
 
   /**
@@ -870,13 +891,17 @@ export class DynamoDBPat {
     return null;
   }
 
-  private async load(tokenId: string): Promise<TokenRecord | null> {
+  private async load(
+    tokenId: string,
+    options?: LoadOptions,
+  ): Promise<TokenRecord | null> {
     const result = await this.docClient.send(
       new GetCommand({
         TableName: this.tableName,
         Key: {
           tokenId,
         },
+        ...(options?.consistentRead && { ConsistentRead: true }),
       }),
     );
     if (!result.Item) {

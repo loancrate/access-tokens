@@ -921,6 +921,31 @@ describe("DynamoDBPat integration", () => {
     });
   });
 
+  describe("get", () => {
+    it("should load a token without exposing secretPhc", async () => {
+      const { record } = await pat.issue({
+        owner: "get-user",
+        isAdmin: true,
+        roles: ["reader"],
+      });
+
+      const loaded = await pat.get(record.tokenId);
+
+      expect(loaded).toMatchObject({
+        tokenId: record.tokenId,
+        owner: "get-user",
+        isAdmin: true,
+        roles: ["reader"],
+        createdAt: record.createdAt,
+      });
+      expect(loaded).not.toHaveProperty("secretPhc");
+    });
+
+    it("should return null for a missing token", async () => {
+      await expect(pat.get(id62())).resolves.toBeNull();
+    });
+  });
+
   describe("list", () => {
     it("should list all tokens excluding secretPhc field", async () => {
       // Create a separate table for listing tests to avoid interference

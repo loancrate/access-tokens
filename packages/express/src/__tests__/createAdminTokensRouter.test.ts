@@ -40,7 +40,12 @@ describe("createAdminTokensRouter", () => {
 
     app.use(httpErrorMiddleware);
 
-    vi.clearAllMocks();
+    mockPat.get.mockResolvedValue({
+      tokenId: "admin",
+      owner: "admin",
+      isAdmin: true,
+      createdAt: 1000,
+    });
   });
 
   describe("GET /admin/tokens", () => {
@@ -90,6 +95,7 @@ describe("createAdminTokensRouter", () => {
           },
         ],
       });
+      expect(response.body.records[0]).not.toHaveProperty("secretPhc");
     });
 
     it("should handle query parameters", async () => {
@@ -550,6 +556,161 @@ describe("createAdminTokensRouter", () => {
       expect(response.status).toBe(400);
       expect(response.body).toHaveProperty("error");
       expect(response.body.error.message).toBe("Invalid request body");
+    });
+  });
+
+  describe("active admin token state", () => {
+    const adminTokenRouteCases = [
+      {
+        label: "list tokens",
+        request: () =>
+          request(app)
+            .get("/admin/tokens")
+            .set("Authorization", "Bearer stale-admin-jwt"),
+        operation: () => mockPat.list,
+      },
+      {
+        label: "batch load tokens",
+        request: () =>
+          request(app)
+            .post("/admin/tokens/batch")
+            .set("Authorization", "Bearer stale-admin-jwt")
+            .send({ tokenIds: ["token1"], includeSecretPhc: true }),
+        operation: () => mockPat.batchLoad,
+      },
+      {
+        label: "issue tokens",
+        request: () =>
+          request(app)
+            .post("/admin/tokens")
+            .set("Authorization", "Bearer stale-admin-jwt")
+            .send({ owner: "new-owner", isAdmin: true }),
+        operation: () => mockPat.issue,
+      },
+      {
+        label: "register tokens",
+        request: () =>
+          request(app)
+            .put("/admin/tokens/test-token-id")
+            .set("Authorization", "Bearer stale-admin-jwt")
+            .send({
+              secretPhc: "hashed-secret",
+              owner: "test-owner",
+              isAdmin: true,
+            }),
+        operation: () => mockPat.register,
+      },
+      {
+        label: "update tokens",
+        request: () =>
+          request(app)
+            .patch("/admin/tokens/test-token-id")
+            .set("Authorization", "Bearer stale-admin-jwt")
+            .send({ isAdmin: true }),
+        operation: () => mockPat.update,
+      },
+      {
+        label: "revoke tokens",
+        request: () =>
+          request(app)
+            .put("/admin/tokens/test-token-id/revoke")
+            .set("Authorization", "Bearer stale-admin-jwt")
+            .send({}),
+        operation: () => mockPat.revoke,
+      },
+      {
+        label: "restore tokens",
+        request: () =>
+          request(app)
+            .put("/admin/tokens/test-token-id/restore")
+            .set("Authorization", "Bearer stale-admin-jwt"),
+        operation: () => mockPat.restore,
+      },
+    ];
+
+    it.each(adminTokenRouteCases)(
+      "should reject a stale admin JWT before $label",
+      async ({ request: makeRequest, operation }) => {
+        mockSignerVerifier.verify.mockResolvedValue(verifiedAdminJwt);
+        mockPat.get.mockResolvedValueOnce({
+          tokenId: "admin",
+          owner: "admin",
+          isAdmin: true,
+          createdAt: 1000,
+          revokedAt: 2000,
+        });
+
+        const response = await makeRequest();
+
+        expect(response.status).toBe(401);
+        expect(response.body).toStrictEqual({
+          error: { message: "Invalid Authorization token" },
+        });
+        expect(mockPat.get.mock.calls).toStrictEqual([["admin"]]);
+        expect(operation()).not.toHaveBeenCalled();
+      },
+    );
+
+    it.each(adminTokenRouteCases)(
+      "should reject a demoted admin JWT before $label",
+      async ({ request: makeRequest, operation }) => {
+        mockSignerVerifier.verify.mockResolvedValue(verifiedAdminJwt);
+        mockPat.get.mockResolvedValueOnce({
+          tokenId: "admin",
+          owner: "admin",
+          isAdmin: false,
+          createdAt: 1000,
+        });
+
+        const response = await makeRequest();
+
+        expect(response.status).toBe(403);
+        expect(response.body).toStrictEqual({
+          error: { message: "Admin access required" },
+        });
+        expect(mockPat.get.mock.calls).toStrictEqual([["admin"]]);
+        expect(operation()).not.toHaveBeenCalled();
+      },
+    );
+
+    it("should reject a stale admin JWT when the backing token is missing", async () => {
+      mockSignerVerifier.verify.mockResolvedValue(verifiedAdminJwt);
+      mockPat.get.mockResolvedValueOnce(null);
+
+      const response = await request(app)
+        .post("/admin/tokens")
+        .set("Authorization", "Bearer stale-admin-jwt")
+        .send({ owner: "new-owner", isAdmin: true });
+
+      expect(response.status).toBe(401);
+      expect(response.body).toStrictEqual({
+        error: { message: "Invalid Authorization token" },
+      });
+      expect(mockPat.get.mock.calls).toStrictEqual([["admin"]]);
+      expect(mockPat.issue).not.toHaveBeenCalled();
+    });
+
+    it("should reject a stale admin JWT when the backing token is expired", async () => {
+      mockSignerVerifier.verify.mockResolvedValue(verifiedAdminJwt);
+      mockPat.get.mockResolvedValueOnce({
+        tokenId: "admin",
+        owner: "admin",
+        isAdmin: true,
+        createdAt: 1000,
+        expiresAt: Math.floor(Date.now() / 1000) - 1,
+      });
+
+      const response = await request(app)
+        .post("/admin/tokens")
+        .set("Authorization", "Bearer stale-admin-jwt")
+        .send({ owner: "new-owner", isAdmin: true });
+
+      expect(response.status).toBe(401);
+      expect(response.body).toStrictEqual({
+        error: { message: "Invalid Authorization token" },
+      });
+      expect(mockPat.get.mock.calls).toStrictEqual([["admin"]]);
+      expect(mockPat.issue).not.toHaveBeenCalled();
     });
   });
 

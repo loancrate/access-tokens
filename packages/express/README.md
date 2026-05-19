@@ -9,7 +9,7 @@ Express routes and middleware for Personal Access Token (PAT) authentication wit
 
 - **Ready-to-Use Routes**: Pre-built authentication and admin token management endpoints
 - **JWT Token Exchange**: OAuth 2.0-compatible token endpoint for PAT-to-JWT exchange
-- **Express Middleware**: `requireJwt`, `requireAdmin`, and `requireRole` middleware for route protection
+- **Express Middleware**: `requireJwt`, `requireAdmin`, `requireActiveAdminToken`, and `requireRole` middleware for route protection
 - **JOSE Integration**: Industry-standard JWT signing and verification
 - **TypeScript**: Full type safety with Express request augmentation
 - **Flexible Configuration**: Customizable paths, token lifetime, and key management
@@ -201,10 +201,13 @@ Creates an Express router with admin token management endpoints. Requires JWT au
 
 - `POST /tokens/batch` - Batch retrieve tokens
   - **Request Body:** `{ "tokenIds": ["id1", "id2"], "includeSecretPhc"?: false }`
-  - **Response:** `{ "found": [...], "missing": [...] }`
+  - **Response:** `{ "found": [...], "notFound": [...] }`
 
-**Note:** All endpoints require JWT authentication and admin privileges. They
-use `requireJwt` and `requireAdmin` middleware internally.
+**Note:** All endpoints require JWT authentication and an active admin token.
+They use `requireJwt`, `requireAdmin`, and `requireActiveAdminToken` middleware
+internally. The router expects admin JWTs to be minted from PATs stored by the
+configured `DynamoDBPat` instance; `req.user.sub` is reloaded as the backing
+token ID before token management handlers run.
 
 ### Middleware
 
@@ -266,6 +269,41 @@ app.delete("/users/:id", requireJwt, requireAdmin, (req, res) => {
   // Only admin users can access this
   res.json({ success: true });
 });
+```
+
+#### `createRequireActiveAdminToken(options)`
+
+Creates middleware that requires `req.user.sub` to reference an active,
+unrevoked, unexpired admin token. Must be used after `requireJwt`; use it after
+`requireAdmin` for admin-token-backed admin routes.
+
+When the backing token is valid, `req.user` is refreshed from the current token
+record before the next handler runs. `req.user.roles` comes from the current PAT
+record, not the JWT claim.
+
+**Options:**
+
+```typescript
+{
+  pat: DynamoDBPat;     // DynamoDBPat instance
+  logger?: pino.Logger; // Optional logger
+}
+```
+
+**Usage:**
+
+```typescript
+const requireActiveAdminToken = createRequireActiveAdminToken({ pat });
+
+app.post(
+  "/admin/tasks",
+  requireJwt,
+  requireAdmin,
+  requireActiveAdminToken,
+  (req, res) => {
+    res.json({ success: true });
+  },
+);
 ```
 
 #### `createRequireRole(options)`
