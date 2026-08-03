@@ -21,8 +21,8 @@
     "release:local": "pnpm verify && pnpm release",
     "test": "turbo run test",
     "test-smoke": "turbo run test-smoke",
-    "test-int": "scripts/start-localstack.sh && turbo run test-int",
-    "test:coverage": "turbo run test -- --coverage && turbo run test-int -- --coverage && scripts/merge-coverage.sh",
+    "test-int": "scripts/start-aws-emulator.sh && turbo run test-int",
+    "test:coverage": "turbo run test -- --coverage && scripts/start-aws-emulator.sh && turbo run test-int -- --coverage && scripts/merge-coverage.sh",
     "typecheck": "turbo run typecheck",
     "verify": "turbo run build lint typecheck test-smoke && pnpm test:coverage && pnpm format:check",
     "version-packages": "changeset version"
