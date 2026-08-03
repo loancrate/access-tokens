@@ -6,6 +6,7 @@ import {
   CreateTableCommand,
   DeleteTableCommand,
   DescribeTableCommand,
+  DescribeTimeToLiveCommand,
   DynamoDBClient,
   UpdateTimeToLiveCommand,
   waitUntilTableExists,
@@ -20,6 +21,17 @@ import { DynamoDBPat } from "../DynamoDBPat";
 
 const tableWaitCreateTimeMs = 30_000;
 
+/**
+ * Create a token table for testing.
+ *
+ * Deliberately does NOT enable TTL on `expiresAt`. Expiry here is an
+ * application-level concept: `verify` and `batchLoad` are expected to read an
+ * expired record back and report it as expired, which is exactly the state
+ * real DynamoDB serves between an item's expiry and the TTL sweeper deleting
+ * it (best effort, within 48 hours). A TTL-enabled fixture makes those
+ * assertions depend on sweeper timing, which varies from never to instant
+ * across backends. TTL configuration itself is covered by its own test below.
+ */
 async function createTokenTable(
   ddbClient: DynamoDBClient,
   tableName: string,
@@ -52,16 +64,6 @@ async function createTokenTable(
       TableName: tableName,
     },
   );
-
-  await ddbClient.send(
-    new UpdateTimeToLiveCommand({
-      TableName: tableName,
-      TimeToLiveSpecification: {
-        AttributeName: "expiresAt",
-        Enabled: true,
-      },
-    }),
-  );
 }
 
 describe("DynamoDBPat integration", () => {
@@ -73,9 +75,12 @@ describe("DynamoDBPat integration", () => {
   const tokenPrefix = "test_pat_";
 
   beforeAll(async () => {
-    // Configure AWS clients to use localstack and ensure no env vars interfere
+    // Pin region and credentials so ambient AWS env vars can't interfere. The
+    // endpoint honors AWS_ENDPOINT_URL, the AWS SDK's own override variable, so
+    // these tests can target an emulator on a non-default port. An explicit
+    // `endpoint` outranks the SDK's own env resolution, hence the manual read.
     const clientConfig = {
-      endpoint: "http://localhost:4566",
+      endpoint: process.env.AWS_ENDPOINT_URL ?? "http://localhost:4566",
       region: "us-east-1",
       credentials: { accessKeyId: "test", secretAccessKey: "test" },
     };
@@ -116,6 +121,40 @@ describe("DynamoDBPat integration", () => {
 
       const count = await pat.getCount();
       expect(count).toBe(0);
+    });
+
+    it("should accept a TTL configuration on the expiresAt attribute", async () => {
+      // Production relies on DynamoDB TTL to evict expired tokens, so we cover
+      // that the configuration is accepted and reported back. Eviction itself
+      // is not asserted: real DynamoDB deletes on a best-effort basis within
+      // 48 hours, so no test could reasonably depend on it. This runs on its
+      // own table so the sweeper stays out of every other test's way — see
+      // createTokenTable.
+      const ttlTableName = `${tableName}-ttl`;
+      await createTokenTable(ddbClient, ttlTableName);
+
+      try {
+        await ddbClient.send(
+          new UpdateTimeToLiveCommand({
+            TableName: ttlTableName,
+            TimeToLiveSpecification: {
+              AttributeName: "expiresAt",
+              Enabled: true,
+            },
+          }),
+        );
+
+        const ttlDesc = await ddbClient.send(
+          new DescribeTimeToLiveCommand({ TableName: ttlTableName }),
+        );
+
+        expect(ttlDesc.TimeToLiveDescription?.TimeToLiveStatus).toBe("ENABLED");
+        expect(ttlDesc.TimeToLiveDescription?.AttributeName).toBe("expiresAt");
+      } finally {
+        await ddbClient.send(
+          new DeleteTableCommand({ TableName: ttlTableName }),
+        );
+      }
     });
   });
 

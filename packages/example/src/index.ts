@@ -34,7 +34,12 @@ async function main() {
   logger.info("Starting DynamoDB PAT example application...");
 
   const dynamoClient = new DynamoDBClient({
-    endpoint: process.env.DYNAMODB_ENDPOINT || "http://localhost:4566",
+    // AWS_ENDPOINT_URL is the AWS SDK's own override; DYNAMODB_ENDPOINT wins
+    // over it, matching AWS's service-specific-beats-generic precedence.
+    endpoint:
+      process.env.DYNAMODB_ENDPOINT ||
+      process.env.AWS_ENDPOINT_URL ||
+      "http://localhost:4566",
     region: process.env.AWS_REGION || "us-east-1",
     credentials: {
       accessKeyId: process.env.AWS_ACCESS_KEY_ID || "test",
