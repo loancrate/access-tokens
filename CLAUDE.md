@@ -12,14 +12,14 @@ A TypeScript monorepo for managing Personal Access Tokens (PATs) backed by Dynam
 pnpm install          # Install dependencies
 pnpm build            # Build all packages (via Turbo)
 pnpm test             # Run unit tests across all packages
-pnpm test-int         # Integration tests (requires LocalStack/Docker)
+pnpm test-int         # Integration tests (starts the local AWS emulator; requires Docker)
 pnpm test:coverage    # Unit + integration tests with coverage merge
 pnpm lint             # ESLint across all packages
 pnpm typecheck        # TypeScript type checking
 pnpm format           # Prettier auto-format
 pnpm format:check     # Prettier check (CI enforced)
 pnpm verify           # Full CI check: build, lint, typecheck, test, format
-pnpm dev              # Run example app (LocalStack required)
+pnpm dev              # Run example app (local AWS emulator must already be running)
 ```
 
 Single package commands (run from package directory):
@@ -41,7 +41,7 @@ Releases use Changesets: `pnpm changeset`, `pnpm version-packages`, `pnpm releas
 - **`@access-tokens/express`** — Express routers and middleware. `createAuthRouter` handles PAT→JWT exchange. `createAdminTokensRouter` provides CRUD endpoints. `createRequireJwt`/`createRequireAdmin`/`createRequireRole` are auth middleware. JWT signing via `jose`. Uses esbuild for bundling + tsc for declarations.
 - **`@access-tokens/client`** — `AccessTokensClient` class: type-safe HTTP client for the express API. Uses fetch-retry. Zod schemas for response validation.
 - **`@access-tokens/cli`** — Commander-based CLI. Commands: issue, generate, register, list, revoke, restore, update, sync. Supports YAML config files for sync operations.
-- **`@access-tokens/example`** — Demo Express app with LocalStack DynamoDB. ESM (`"type": "module"`).
+- **`@access-tokens/example`** — Demo Express app against DynamoDB in the local AWS emulator. ESM (`"type": "module"`).
   **Key dependency chain**: cli → client → express → core
 
 ## Git Rules

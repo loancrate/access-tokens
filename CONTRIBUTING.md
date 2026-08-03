@@ -12,8 +12,7 @@ Please be respectful and constructive in all interactions. We're building this t
 
 - Node.js 20+ (Node.js 24.x recommended for development, see `.nvmrc`)
 - pnpm 10.x+
-- Docker (for LocalStack integration tests)
-- AWS CLI (for LocalStack setup)
+- Docker (for the local AWS emulator used by integration tests)
 
 ### Setup Development Environment
 
@@ -128,11 +127,30 @@ cd packages/core
 pnpm test
 ```
 
-### Database Tests (LocalStack required)
+### Database Tests (local AWS emulator required)
 
 ```bash
 cd packages/core
 pnpm test-int
+```
+
+#### Local AWS emulator
+
+`pnpm test-int` runs `scripts/start-aws-emulator.sh`, which starts
+[Floci](https://floci.io/) — a drop-in replacement for LocalStack Community —
+in Docker on port 4566, or reuses whatever is already listening there. The
+image is pinned by digest.
+
+```bash
+# Point everything at a different emulator or port. The script starts one
+# there, and the integration tests and example app both read this variable.
+AWS_ENDPOINT_URL=http://localhost:4699 pnpm test-int
+
+# Run a different emulator image.
+AWS_EMULATOR_IMAGE=localstack/localstack:4.10 pnpm test-int
+
+# Tear the container down.
+docker rm -f access-tokens-aws-emulator
 ```
 
 ### All Tests

@@ -10,7 +10,8 @@ This example demonstrates how to use all four `@access-tokens` packages together
 ## Prerequisites
 
 - Node.js 20+
-- LocalStack running on port 4566 (or AWS DynamoDB)
+- A local AWS emulator on port 4566 (`pnpm test-int` from the repo root starts
+  one, or run `scripts/start-aws-emulator.sh` directly), or real AWS DynamoDB
 
 ## Quick Start
 
