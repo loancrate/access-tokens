@@ -136,21 +136,40 @@ pnpm test-int
 
 #### Local AWS emulator
 
-`pnpm test-int` runs `scripts/start-aws-emulator.sh`, which starts
+The `test-int` turbo task declares `//#emulator:up` as a dependency, so any
+route into the integration tests — `pnpm test-int`, `pnpm test:coverage`,
+`pnpm verify` — brings the emulator up first. `scripts/start-aws-emulator.sh`
+reuses whatever is already listening on the endpoint, and otherwise starts the
+`aws-emulator` service from `docker-compose.yml`. That service runs
 [Floci](https://floci.io/) — a drop-in replacement for LocalStack Community —
-in Docker on port 4566, or reuses whatever is already listening there. The
-image is pinned by digest.
+pinned by digest.
+
+Overrides must be declared in `turbo.json` under the task's `env` key. Turbo
+runs tasks with a filtered environment, so an undeclared variable is dropped
+silently and the tests run against the default endpoint.
 
 ```bash
-# Point everything at a different emulator or port. The script starts one
-# there, and the integration tests and example app both read this variable.
+# Start or stop it directly.
+pnpm emulator:up
+pnpm emulator:down
+
+# Point everything at a different port. The script starts an emulator there,
+# and the integration tests and example app both read this variable.
 AWS_ENDPOINT_URL=http://localhost:4699 pnpm test-int
 
 # Run a different emulator image.
 AWS_EMULATOR_IMAGE=localstack/localstack:4.10 pnpm test-int
+```
 
-# Tear the container down.
-docker rm -f access-tokens-aws-emulator
+CI uses the same `docker-compose.yml`, brought up by an explicit
+`Start AWS emulator` step, so the image is pinned in exactly one place.
+
+If you ran integration tests before this repo moved off LocalStack, remove the
+container left behind by the old script — it still answers on 4566 and would be
+reused in preference to Floci:
+
+```bash
+docker rm -f access-tokens-localstack
 ```
 
 ### All Tests

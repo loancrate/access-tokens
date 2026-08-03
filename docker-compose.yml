@@ -1,0 +1,31 @@
+# Local AWS emulator for the integration tests and the example app.
+#
+# Floci is a drop-in replacement for LocalStack Community: same port, same
+# test/test credentials, same /_localstack/health endpoint, no auth token.
+#
+# CI does not use this file -- it declares its own emulator as a GitHub Actions
+# service container in .github/workflows/ci.yml, so local dev and CI cut over
+# and roll back independently.
+#
+# Pinned to a project name so a git worktree does not bring up a second stack
+# named after its own directory.
+name: access-tokens
+
+services:
+  aws-emulator:
+    # Pinned by digest because Floci ships a release every week or two.
+    #
+    # ROLLBACK: AWS_EMULATOR_IMAGE=localstack/localstack:4.10 pnpm test-int
+    image: ${AWS_EMULATOR_IMAGE:-floci/floci:1.5.34@sha256:b3b3a70a294b8ba8095385b8571ea1e4d44d494950d98de5e812cd9de02f506b}
+    ports:
+      # Keep the container's internal port at 4566 and remap host-side.
+      # Emulators build the endpoints they hand out from their own base URL,
+      # which no port variable updates, so moving the internal port breaks
+      # those silently. scripts/start-aws-emulator.sh derives AWS_EMULATOR_PORT
+      # from AWS_ENDPOINT_URL so there is one knob rather than two.
+      - "${AWS_EMULATOR_PORT:-4566}:4566"
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:4566/_localstack/health"]
+      interval: 2s
+      timeout: 5s
+      retries: 30

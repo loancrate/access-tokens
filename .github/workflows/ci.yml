@@ -13,28 +13,8 @@ jobs:
       matrix:
         node-version: [20.x, 22.x, 24.x]
 
-    services:
-      # Floci, a drop-in replacement for LocalStack Community: same port, same
-      # test/test credentials, same health endpoint, no auth token. Pinned by
-      # digest because Floci releases every week or two.
-      #
-      # No SERVICES here: Floci has no service-gating knob and starts
-      # everything regardless, so declaring one would only mislead. For verbose
-      # logs, set QUARKUS_LOG_LEVEL: DEBUG.
-      #
-      # ROLLBACK: image: localstack/localstack:4.10, and restore
-      #   env:
-      #     SERVICES: dynamodb
-      #     DEBUG: 1
-      aws-emulator:
-        image: floci/floci:1.5.34@sha256:b3b3a70a294b8ba8095385b8571ea1e4d44d494950d98de5e812cd9de02f506b
-        ports:
-          - 4566:4566
-        options: >-
-          --health-cmd "curl -f http://localhost:4566/_localstack/health || exit 1"
-          --health-interval 5s
-          --health-timeout 5s
-          --health-retries 12
+    # No services: block -- the emulator is started explicitly below, from the
+    # same docker-compose.yml developers use, so the image is pinned once.
 
     steps:
       - uses: actions/checkout@v4
@@ -68,8 +48,18 @@ jobs:
       - name: Run lint
         run: pnpm lint
 
+      # Blocks on the compose healthcheck, so the emulator is ready before the
+      # tests start. `pnpm test:coverage` then finds it listening and reuses it.
+      - name: Start AWS emulator
+        run: docker compose up -d --wait aws-emulator
+
       - name: Run tests
         run: pnpm test:coverage
+
+      # GitHub dumps service-container logs automatically; compose does not.
+      - name: Emulator logs on failure
+        if: failure()
+        run: docker compose logs --tail 200 aws-emulator
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v5
