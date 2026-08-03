@@ -4,9 +4,13 @@ set -e
 # Starts the local AWS emulator that the integration tests and the example app
 # run against, reusing one if it is already listening.
 #
-# Override the image to run a different emulator:
-#   AWS_EMULATOR_IMAGE=some/emulator:tag pnpm test-int
-AWS_EMULATOR_IMAGE="${AWS_EMULATOR_IMAGE:-localstack/localstack:4.10}"
+# Floci is a drop-in replacement for LocalStack Community: same port, same
+# test/test credentials, same /_localstack/health endpoint, no auth token.
+# Pinned by digest because Floci ships a release every week or two and we have
+# been burned by floating tags before.
+#
+# ROLLBACK: AWS_EMULATOR_IMAGE=localstack/localstack:4.10 pnpm test-int
+AWS_EMULATOR_IMAGE="${AWS_EMULATOR_IMAGE:-floci/floci:1.5.34@sha256:b3b3a70a294b8ba8095385b8571ea1e4d44d494950d98de5e812cd9de02f506b}"
 
 # One knob for "where is the emulator". AWS_ENDPOINT_URL is the AWS SDK's own
 # override variable, and the integration tests honor it too, so
