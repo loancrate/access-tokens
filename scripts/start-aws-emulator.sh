@@ -21,9 +21,25 @@ cd "$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)"
 # declared under the tasks' `env` keys in turbo.json -- turbo runs tasks with a
 # filtered environment and drops anything undeclared.
 AWS_ENDPOINT_URL="${AWS_ENDPOINT_URL:-http://localhost:4566}"
-PORT="${AWS_ENDPOINT_URL##*:}"
-case "$PORT" in
-'' | *[!0-9]*) PORT=4566 ;;
+
+# Strip the scheme and any path before reading the port, or a trailing slash
+# lands in the port and we bind something other than what the clients will use.
+HOST_PORT="${AWS_ENDPOINT_URL#*://}"
+HOST_PORT="${HOST_PORT%%/*}"
+case "$HOST_PORT" in
+*:*)
+  PORT="${HOST_PORT##*:}"
+  # A malformed port is a typo, not a request for the default. Binding 4566
+  # here would report success for an address nothing is listening on.
+  case "$PORT" in
+  '' | *[!0-9]*)
+    echo "Error: could not read a port from AWS_ENDPOINT_URL=${AWS_ENDPOINT_URL}" >&2
+    echo "Expected something like http://localhost:4699" >&2
+    exit 1
+    ;;
+  esac
+  ;;
+*) PORT=4566 ;;
 esac
 export AWS_EMULATOR_PORT="$PORT"
 
