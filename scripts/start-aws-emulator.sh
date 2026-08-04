@@ -35,14 +35,26 @@ fi
 # Refuse to adopt someone else's emulator. Reusing whatever answered on the
 # port is how integration runs here ended up silently testing against another
 # repo's LocalStack, so a foreign emulator is an error with a way out, not a
-# convenience. Our own container is left to compose, which is idempotent.
+# convenience.
+#
+# `docker compose ps -q` is scoped to this checkout's compose project, since
+# docker-compose.yml pins no project name. So "foreign" correctly includes
+# another worktree's emulator, which would otherwise be quietly shared or, if
+# the ports differed, recreated out from under a run already using it.
+#
+# Our own container is left to compose, which is idempotent and recreates it if
+# the image, port, or environment has drifted.
 if [ -z "$(docker compose ps -q aws-emulator)" ] \
   && curl -s -f "${AWS_ENDPOINT_URL}/_localstack/health" > /dev/null 2>&1; then
   echo "Error: something is already serving ${AWS_ENDPOINT_URL}, and it is not" >&2
-  echo "this repo's emulator. Tests would silently run against it." >&2
+  echo "this checkout's emulator -- another repo, or another worktree. Tests" >&2
+  echo "would silently run against it." >&2
   echo >&2
-  echo "Stop it, or use another port:" >&2
+  echo "Use another port:" >&2
   echo "  AWS_ENDPOINT_URL=http://localhost:4699 pnpm test-int" >&2
+  echo >&2
+  echo "or stop whatever holds it:" >&2
+  echo "  docker ps --filter publish=${AWS_EMULATOR_PORT}" >&2
   exit 1
 fi
 

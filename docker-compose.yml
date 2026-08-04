@@ -6,9 +6,13 @@
 # CI uses this file too, via the Start AWS emulator step in
 # .github/workflows/ci.yml, so the image is pinned in exactly one place.
 #
-# Pinned to a project name so a git worktree does not bring up a second stack
-# named after its own directory.
-name: access-tokens
+# Deliberately no `name:`. Compose derives the project from the checkout
+# directory, so every worktree gets its own emulator. Pinning a shared name
+# would make the emulator a resource worktrees fight over: `up` with a
+# different port recreates the one container on the new port, cutting off a
+# run already using the old one. The monorepo pins its project name because
+# relative bind mounts have to resolve to the primary checkout; this file has
+# no volumes, so there is nothing to anchor and nothing to share.
 
 services:
   aws-emulator:

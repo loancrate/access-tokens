@@ -153,9 +153,20 @@ pnpm emulator:down
 AWS_ENDPOINT_URL=http://localhost:4699 pnpm test-int
 ```
 
-If something other than this repo's emulator is already serving that endpoint —
-another repo's LocalStack, say — `pnpm test-int` fails rather than running
-against it. Stop it or pick another port.
+The compose project is derived from the checkout directory rather than pinned,
+so each worktree gets its own emulator and one worktree's run cannot move or
+adopt another's.
+
+If something other than this checkout's emulator is already serving the endpoint
+— another repo's LocalStack, or another worktree — `pnpm test-int` fails rather
+than running against it. Pick another port, or stop whatever holds it. Two
+leftovers worth clearing once, both of which will hold port 4566 and trip that
+check:
+
+```bash
+docker rm -f access-tokens-localstack        # from before the Floci migration
+docker rm -f access-tokens-aws-emulator-1    # from when the project name was pinned
+```
 
 Adding a new override means declaring it in `turbo.json` under the task's `env`
 key. Turbo runs tasks with a filtered environment, so an undeclared variable is
