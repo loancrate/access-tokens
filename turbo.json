@@ -17,11 +17,8 @@
       "outputs": ["coverage/**", "*-junit.xml"],
       "inputs": ["src/**", "vitest.config.ts"]
     },
-    // Turbo runs tasks with a filtered environment, so the emulator overrides
-    // have to be declared or they are silently dropped and the tests quietly
-    // run against the default endpoint.
     "//#emulator:up": {
-      "env": ["AWS_ENDPOINT_URL", "AWS_EMULATOR_IMAGE"],
+      "env": ["AWS_ENDPOINT_URL"],
       "cache": false
     },
     "test-int": {
