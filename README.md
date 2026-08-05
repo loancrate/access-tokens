@@ -19,7 +19,7 @@ as a storage backend.
 - **DynamoDB Storage**: Scalable token persistence with TTL support
 - **TypeScript**: Full type safety with modern ES2022+ support
 - **Dual Module Support**: Both CommonJS and ESM builds
-- **Comprehensive Testing**: Unit and integration tests with LocalStack
+- **Comprehensive Testing**: Unit and integration tests against a local AWS emulator
 
 ## Packages
 
@@ -175,8 +175,7 @@ Tokens follow the format: `{prefix}{tokenId}.{secret}`
 
 - Node.js 20+
 - pnpm 10+
-- AWS CLI (for LocalStack setup)
-- Docker (for LocalStack)
+- Docker (for the local AWS emulator used by integration tests)
 
 ### Setup
 

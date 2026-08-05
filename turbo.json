@@ -17,8 +17,13 @@
       "outputs": ["coverage/**", "*-junit.xml"],
       "inputs": ["src/**", "vitest.config.ts"]
     },
+    "//#emulator:up": {
+      "env": ["AWS_ENDPOINT_URL"],
+      "cache": false
+    },
     "test-int": {
-      "dependsOn": ["^build"],
+      "dependsOn": ["^build", "//#emulator:up"],
+      "env": ["AWS_ENDPOINT_URL"],
       "outputs": ["coverage/**", "*-int-junit.xml"],
       "inputs": ["src/**", "vitest-int.config.ts"],
       "cache": false

@@ -12,8 +12,7 @@ Please be respectful and constructive in all interactions. We're building this t
 
 - Node.js 20+ (Node.js 24.x recommended for development, see `.nvmrc`)
 - pnpm 10.x+
-- Docker (for LocalStack integration tests)
-- AWS CLI (for LocalStack setup)
+- Docker (for the local AWS emulator used by integration tests)
 
 ### Setup Development Environment
 
@@ -128,12 +127,50 @@ cd packages/core
 pnpm test
 ```
 
-### Database Tests (LocalStack required)
+### Database Tests (local AWS emulator required)
 
 ```bash
 cd packages/core
 pnpm test-int
 ```
+
+#### Local AWS emulator
+
+The `test-int` turbo task declares `//#emulator:up` as a dependency, so any
+route into the integration tests — `pnpm test-int`, `pnpm test:coverage`,
+`pnpm verify` — brings the emulator up first. It runs the `aws-emulator` service
+from `docker-compose.yml`: [Floci](https://floci.io/), a drop-in replacement for
+LocalStack Community, pinned by digest. CI uses the same file, so the image is
+pinned in exactly one place.
+
+```bash
+# Start or stop it directly.
+pnpm emulator:up
+pnpm emulator:down
+
+# Point everything at a different port. The integration tests and the example
+# app read this too, so one variable moves the emulator and its clients.
+AWS_ENDPOINT_URL=http://localhost:4699 pnpm test-int
+```
+
+The compose project is derived from the checkout directory rather than pinned,
+so each worktree gets its own emulator and one worktree's run cannot move or
+adopt another's.
+
+If something other than this checkout's emulator is already serving the endpoint
+— another repo's LocalStack, or another worktree — `pnpm test-int` fails rather
+than running against it. Pick another port, or stop whatever holds it. Two
+leftovers worth clearing once, both of which will hold port 4566 and trip that
+check:
+
+```bash
+docker rm -f access-tokens-localstack        # from before the Floci migration
+docker rm -f access-tokens-aws-emulator-1    # from when the project name was pinned
+```
+
+Adding a new override means declaring it in `turbo.json` under the task's `env`
+key. Turbo runs tasks with a filtered environment, so an undeclared variable is
+dropped silently and the tests run against the default endpoint.
 
 ### All Tests
 

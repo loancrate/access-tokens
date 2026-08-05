@@ -13,19 +13,19 @@ jobs:
       matrix:
         node-version: [20.x, 22.x, 24.x]
 
-    services:
-      localstack:
-        image: localstack/localstack:4.10
-        ports:
-          - 4566:4566
-        env:
-          SERVICES: dynamodb
-          DEBUG: 1
-        options: >-
-          --health-cmd "curl -f http://localhost:4566/_localstack/health || exit 1"
-          --health-interval 10s
-          --health-timeout 5s
-          --health-retries 5
+    # No services: block. The emulator is started explicitly below, from the
+    # same docker-compose.yml developers use, so the image digest is pinned in
+    # one place and CI exercises the code path developers do.
+    #
+    # A services: block would be roughly equivalent here, and is worth
+    # reconsidering if either of its real advantages starts applying:
+    #
+    #   - it resolves services by hostname when the job itself runs in a
+    #     container, which ours does not
+    #   - it takes registry credentials directly, which would matter if we
+    #     mirror the Floci image to our own registry
+    #
+    # Its automatic log capture is replaced by the failure step below.
 
     steps:
       - uses: actions/checkout@v4
@@ -59,8 +59,18 @@ jobs:
       - name: Run lint
         run: pnpm lint
 
+      # Blocks on the compose healthcheck, so the emulator is ready before the
+      # tests start. `pnpm test:coverage` then finds it listening and reuses it.
+      - name: Start AWS emulator
+        run: docker compose up -d --wait aws-emulator
+
       - name: Run tests
         run: pnpm test:coverage
+
+      # GitHub dumps service-container logs automatically; compose does not.
+      - name: Emulator logs on failure
+        if: failure()
+        run: docker compose logs --tail 200 aws-emulator
 
       - name: Upload coverage to Codecov
         uses: codecov/codecov-action@v5

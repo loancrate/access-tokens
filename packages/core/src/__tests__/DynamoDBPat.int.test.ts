@@ -20,9 +20,27 @@ import { DynamoDBPat } from "../DynamoDBPat";
 
 const tableWaitCreateTimeMs = 30_000;
 
+/**
+ * Create a token table for testing, with DynamoDB TTL enabled on `expiresAt`
+ * as a production table would have it.
+ *
+ * Pass `{ ttl: false }` when a test needs to observe a record whose
+ * `expiresAt` has already lapsed. `expiresAt` does double duty -- it is both
+ * the library's application-level expiry field and the TTL attribute -- and
+ * those roles conflict: `verify` reports `expired` for a stored record whose
+ * expiry has passed, but TTL exists to delete exactly those records. A backend
+ * that sweeps promptly removes the row before the assertion can see it, so the
+ * lapsed-record tests own tables where nothing is competing to delete their
+ * fixtures.
+ *
+ * This is not emulator-specific. Real DynamoDB deletes expired items on a
+ * best-effort basis within 48 hours, so those tests would be racing its
+ * sweeper too -- just with a much wider margin.
+ */
 async function createTokenTable(
   ddbClient: DynamoDBClient,
   tableName: string,
+  { ttl = true }: { ttl?: boolean } = {},
 ): Promise<void> {
   await ddbClient.send(
     new CreateTableCommand({
@@ -53,15 +71,17 @@ async function createTokenTable(
     },
   );
 
-  await ddbClient.send(
-    new UpdateTimeToLiveCommand({
-      TableName: tableName,
-      TimeToLiveSpecification: {
-        AttributeName: "expiresAt",
-        Enabled: true,
-      },
-    }),
-  );
+  if (ttl) {
+    await ddbClient.send(
+      new UpdateTimeToLiveCommand({
+        TableName: tableName,
+        TimeToLiveSpecification: {
+          AttributeName: "expiresAt",
+          Enabled: true,
+        },
+      }),
+    );
+  }
 }
 
 describe("DynamoDBPat integration", () => {
@@ -73,9 +93,12 @@ describe("DynamoDBPat integration", () => {
   const tokenPrefix = "test_pat_";
 
   beforeAll(async () => {
-    // Configure AWS clients to use localstack and ensure no env vars interfere
+    // Pin region and credentials so ambient AWS env vars can't interfere. The
+    // endpoint honors AWS_ENDPOINT_URL, the AWS SDK's own override variable, so
+    // these tests can target an emulator on a non-default port. An explicit
+    // `endpoint` outranks the SDK's own env resolution, hence the manual read.
     const clientConfig = {
-      endpoint: "http://localhost:4566",
+      endpoint: process.env.AWS_ENDPOINT_URL ?? "http://localhost:4566",
       region: "us-east-1",
       credentials: { accessKeyId: "test", secretAccessKey: "test" },
     };
@@ -328,22 +351,42 @@ describe("DynamoDBPat integration", () => {
     });
 
     it("should fail verification of expired token", async () => {
-      const { token } = await pat.issue({
-        owner: "expired-test-user",
+      // Needs a lapsed record to still be readable, so TTL is off here -- see
+      // createTokenTable.
+      const expiryTableName = `${tableName}-expiry-verify`;
+      const patForExpiry = new DynamoDBPat({
+        ddbClient,
+        tableName: expiryTableName,
+        tokenPrefix,
       });
 
-      // Get token ID and set expiration in the past
-      const result1 = await pat.verify(token);
-      assert(result1.valid);
+      await createTokenTable(ddbClient, expiryTableName, { ttl: false });
 
-      // Set expiration in the past (1 hour ago)
-      const pastTimestamp = Math.floor(Date.now() / 1000) - 3600;
-      await pat.update(result1.record.tokenId, { expiresAt: pastTimestamp });
+      try {
+        const { token } = await patForExpiry.issue({
+          owner: "expired-test-user",
+        });
 
-      // Verification should now fail
-      const result2 = await pat.verify(token);
-      assert(!result2.valid);
-      expect(result2.reason).toBe("expired");
+        // Get token ID and set expiration in the past
+        const result1 = await patForExpiry.verify(token);
+        assert(result1.valid);
+
+        // Set expiration in the past (1 hour ago)
+        const pastTimestamp = Math.floor(Date.now() / 1000) - 3600;
+        await patForExpiry.update(result1.record.tokenId, {
+          expiresAt: pastTimestamp,
+        });
+
+        // Verification should now fail
+        const result2 = await patForExpiry.verify(token);
+        assert(!result2.valid);
+        expect(result2.reason).toBe("expired");
+        expect(result2.record).toBeDefined();
+      } finally {
+        await ddbClient.send(
+          new DeleteTableCommand({ TableName: expiryTableName }),
+        );
+      }
     });
 
     it("should fail verification of non-existent token", async () => {
@@ -583,31 +626,48 @@ describe("DynamoDBPat integration", () => {
     });
 
     it("should update token expiration", async () => {
-      const { token } = await pat.issue({
-        owner: "expiry-update-user",
+      // Needs a lapsed record to still be readable, so TTL is off here -- see
+      // createTokenTable.
+      const expiryTableName = `${tableName}-expiry-update`;
+      const patForExpiry = new DynamoDBPat({
+        ddbClient,
+        tableName: expiryTableName,
+        tokenPrefix,
       });
 
-      const verifyResult1 = await pat.verify(token);
-      assert(verifyResult1.valid);
-      const { tokenId } = verifyResult1.record;
+      await createTokenTable(ddbClient, expiryTableName, { ttl: false });
 
-      // Set expiration to future
-      const futureTimestamp = Math.floor(Date.now() / 1000) + 3600;
-      await pat.update(tokenId, { expiresAt: futureTimestamp });
+      try {
+        const { token } = await patForExpiry.issue({
+          owner: "expiry-update-user",
+        });
 
-      // Token should still be valid
-      const verifyResult2 = await pat.verify(token);
-      expect(verifyResult2.valid).toBe(true);
+        const verifyResult1 = await patForExpiry.verify(token);
+        assert(verifyResult1.valid);
+        const { tokenId } = verifyResult1.record;
 
-      // Set expiration to past
-      const pastTimestamp = Math.floor(Date.now() / 1000) - 3600;
-      await pat.update(tokenId, { expiresAt: pastTimestamp });
+        // Set expiration to future
+        const futureTimestamp = Math.floor(Date.now() / 1000) + 3600;
+        await patForExpiry.update(tokenId, { expiresAt: futureTimestamp });
 
-      // Token should now be expired
-      const verifyResult3 = await pat.verify(token);
-      assert(!verifyResult3.valid);
-      expect(verifyResult3.reason).toBe("expired");
-      expect(verifyResult3.record).toBeDefined();
+        // Token should still be valid
+        const verifyResult2 = await patForExpiry.verify(token);
+        expect(verifyResult2.valid).toBe(true);
+
+        // Set expiration to past
+        const pastTimestamp = Math.floor(Date.now() / 1000) - 3600;
+        await patForExpiry.update(tokenId, { expiresAt: pastTimestamp });
+
+        // Token should now be expired
+        const verifyResult3 = await patForExpiry.verify(token);
+        assert(!verifyResult3.valid);
+        expect(verifyResult3.reason).toBe("expired");
+        expect(verifyResult3.record).toBeDefined();
+      } finally {
+        await ddbClient.send(
+          new DeleteTableCommand({ TableName: expiryTableName }),
+        );
+      }
     });
 
     it("should clear token expiration", async () => {
@@ -1407,7 +1467,9 @@ describe("DynamoDBPat integration", () => {
         tokenPrefix,
       });
 
-      await createTokenTable(ddbClient, batchTableName);
+      // One of the states under test is "expired", which needs the lapsed
+      // record to still be readable, so TTL is off -- see createTokenTable.
+      await createTokenTable(ddbClient, batchTableName, { ttl: false });
 
       try {
         const activeTokenId = "active000000000000000";
